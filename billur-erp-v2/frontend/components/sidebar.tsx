@@ -27,33 +27,33 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { title: "Dashboard",         icon: LayoutDashboard, href: "/",            perm: "orders.read", group: "Asosiy" },
+  { title: "Dashboard",         icon: LayoutDashboard, href: "/dashboard",            perm: "orders.read", group: "Asosiy" },
   { title: "BoxUI",             icon: Package,         href: "/boxui",       perm: "boxapp.orders.read", group: "Asosiy" },
-  { title: "Klientlar",         icon: Building2,       href: "/clients",     perm: "clients.read",    group: "Asosiy" },
-  { title: "Zakazlar",          icon: ShoppingCart,    href: "/orders",      perm: "orders.read",     group: "Asosiy" },
+  { title: "Klientlar",         icon: Building2,       href: "/dashboard/clients",     perm: "clients.read",    group: "Asosiy" },
+  { title: "Zakazlar",          icon: ShoppingCart,    href: "/dashboard/orders",      perm: "orders.read",     group: "Asosiy" },
 
-  { title: "Production Scan",   icon: QrCode,          href: "/production-scan",  perm: "production.qr.scan",   group: "Production" },
-  { title: "QR Codes",          icon: QrCode,          href: "/qr-codes",         perm: "production.qr.create", group: "Production" },
-  { title: "Traceability",      icon: ScrollText,      href: "/trace",            perm: "production.trace.view",group: "Production" },
-  { title: "Production",        icon: Factory,         href: "/production",       perm: "production.read",      group: "Production" },
-  { title: "Quality",           icon: CheckCircle,     href: "/quality",          perm: "quality.read",         group: "Production" },
-  { title: "Worker Scan",       icon: QrCode,          href: "/scanning",         perm: "qr.scan",              group: "Production" },
-  { title: "Print",             icon: Printer,         href: "/print",            perm: "print.read",           group: "Production" },
+  { title: "Production Scan",   icon: QrCode,          href: "/dashboard/production-scan",  perm: "production.qr.scan",   group: "Production" },
+  { title: "QR Codes",          icon: QrCode,          href: "/dashboard/qr-codes",         perm: "production.qr.create", group: "Production" },
+  { title: "Traceability",      icon: ScrollText,      href: "/dashboard/trace",            perm: "production.trace.view",group: "Production" },
+  { title: "Production",        icon: Factory,         href: "/dashboard/production",       perm: "production.read",      group: "Production" },
+  { title: "Quality",           icon: CheckCircle,     href: "/dashboard/quality",          perm: "quality.read",         group: "Production" },
+  { title: "Worker Scan",       icon: QrCode,          href: "/dashboard/scanning",         perm: "qr.scan",              group: "Production" },
+  { title: "Print",             icon: Printer,         href: "/dashboard/print",            perm: "print.read",           group: "Production" },
 
-  { title: "Ombor",             icon: Package,         href: "/inventory",   perm: "inventory.read",  group: "Ombor" },
-  { title: "Izlishka",          icon: Gift,            href: "/surplus",     perm: "surplus.read",    group: "Ombor" },
-  { title: "BoxApp",            icon: Package,         href: "/boxes",       perm: "box.read",        group: "Ombor" },
-  { title: "BoxApp Sync",       icon: RefreshCw,       href: "/boxapp-sync", perm: "boxapp.view",     group: "Ombor" },
-  { title: "Shipmentlar",       icon: Truck,           href: "/shipments",   perm: "box.read",        group: "Ombor" },
+  { title: "Ombor",             icon: Package,         href: "/dashboard/inventory",   perm: "inventory.read",  group: "Ombor" },
+  { title: "Izlishka",          icon: Gift,            href: "/dashboard/surplus",     perm: "surplus.read",    group: "Ombor" },
+  { title: "BoxApp",            icon: Package,         href: "/dashboard/boxes",       perm: "box.read",        group: "Ombor" },
+  { title: "BoxApp Sync",       icon: RefreshCw,       href: "/dashboard/boxapp-sync", perm: "boxapp.view",     group: "Ombor" },
+  { title: "Shipmentlar",       icon: Truck,           href: "/dashboard/shipments",   perm: "box.read",        group: "Ombor" },
 
-  { title: "Ishchilar",         icon: Users,           href: "/workers",       perm: "workers.read",       group: "Tashkilot" },
-  { title: "Mening Profilim",   icon: UserCircle,      href: "/my-profile",                                group: "Tashkilot" },
-  { title: "Payroll",           icon: Wallet,          href: "/payroll",       perm: "payroll.view_all",   group: "Tashkilot" },
-  { title: "Mening Oyligim",    icon: Wallet,          href: "/my-payroll",    perm: "payroll.view_own",   group: "Tashkilot" },
-  { title: "Piece Rates",       icon: DollarSign,      href: "/piece-rates",   perm: "piece_rates.read",   group: "Tashkilot" },
-  { title: "Foydalanuvchilar",  icon: Users,           href: "/users",         perm: "users.read",         group: "Tashkilot" },
-  { title: "Hisobotlar",        icon: BarChart3,       href: "/reports",       perm: "reports.read",       group: "Tashkilot" },
-  { title: "Audit",             icon: ScrollText,      href: "/audit",         perm: "audit.read",         group: "Tashkilot" },
+  { title: "Ishchilar",         icon: Users,           href: "/dashboard/workers",       perm: "workers.read",       group: "Tashkilot" },
+  { title: "Mening Profilim",   icon: UserCircle,      href: "/dashboard/my-profile",                                group: "Tashkilot" },
+  { title: "Payroll",           icon: Wallet,          href: "/dashboard/payroll",       perm: "payroll.view_all",   group: "Tashkilot" },
+  { title: "Mening Oyligim",    icon: Wallet,          href: "/dashboard/my-payroll",    perm: "payroll.view_own",   group: "Tashkilot" },
+  { title: "Piece Rates",       icon: DollarSign,      href: "/dashboard/piece-rates",   perm: "piece_rates.read",   group: "Tashkilot" },
+  { title: "Foydalanuvchilar",  icon: Users,           href: "/dashboard/users",         perm: "users.read",         group: "Tashkilot" },
+  { title: "Hisobotlar",        icon: BarChart3,       href: "/dashboard/reports",       perm: "reports.read",       group: "Tashkilot" },
+  { title: "Audit",             icon: ScrollText,      href: "/dashboard/audit",         perm: "audit.read",         group: "Tashkilot" },
 ];
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -99,7 +99,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       >
         {/* Header */}
         <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4 shrink-0">
-          <Link href="/" className="flex items-center gap-2" onClick={onClose}>
+          <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Scissors className="h-4 w-4" />
             </div>
@@ -123,7 +123,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               <ul className="space-y-0.5">
                 {items.map(item => {
                   const isActive = pathname === item.href ||
-                    (item.href !== "/" && pathname.startsWith(item.href));
+                    (item.href !== "/dashboard" && pathname.startsWith(item.href));
                   const Icon = item.icon;
                   return (
                     <li key={item.href}>

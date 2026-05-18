@@ -143,7 +143,7 @@ export default function QrCodesPage() {
                         {qr.current_worker_name || '—'}
                       </TableCell>
                       <TableCell>
-                        <Link href={`/trace?qr=${qr.qr_code}`}>
+                        <Link href={`/dashboard/trace?qr=${qr.qr_code}`}>
                           <Button size="icon" variant="ghost"><ExternalLink className="h-4 w-4" /></Button>
                         </Link>
                       </TableCell>

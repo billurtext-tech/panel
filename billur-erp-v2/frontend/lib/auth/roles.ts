@@ -21,5 +21,5 @@ export function getDefaultRoute(roleId: string | undefined): string {
   if (!roleId) return '/login';
   if (roleId === 'boxing') return '/boxui';
   if (isWorkerPortalRole(roleId)) return '/worker';
-  return '/';
+  return '/dashboard';
 }

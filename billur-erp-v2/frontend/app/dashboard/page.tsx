@@ -273,7 +273,7 @@ export default function DashboardPage() {
               <CardDescription>Latest order updates</CardDescription>
             </div>
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/orders">
+              <Link href="/dashboard/orders">
                 View All <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
@@ -366,22 +366,22 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="grid gap-2">
             <Button className="w-full justify-start" variant="outline" asChild>
-              <Link href="/orders">
+              <Link href="/dashboard/orders">
                 <ShoppingCart className="mr-2 h-4 w-4" /> New Order
               </Link>
             </Button>
             <Button className="w-full justify-start" variant="outline" asChild>
-              <Link href="/scanning">
+              <Link href="/dashboard/scanning">
                 <Package className="mr-2 h-4 w-4" /> Scan Box
               </Link>
             </Button>
             <Button className="w-full justify-start" variant="outline" asChild>
-              <Link href="/workers">
+              <Link href="/dashboard/workers">
                 <Users className="mr-2 h-4 w-4" /> Add Worker
               </Link>
             </Button>
             <Button className="w-full justify-start" variant="outline" asChild>
-              <Link href="/reports">
+              <Link href="/dashboard/reports">
                 <CheckCircle2 className="mr-2 h-4 w-4" /> Generate Report
               </Link>
             </Button>

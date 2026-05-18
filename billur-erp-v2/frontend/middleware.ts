@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const ADMIN_ONLY_PREFIXES = [
-  '/clients', '/orders', '/users', '/payroll', '/piece-rates',
-  '/reports', '/audit', '/boxapp-sync', '/inventory', '/surplus',
+  '/dashboard/clients', '/dashboard/orders', '/dashboard/users', '/dashboard/payroll',
+  '/dashboard/piece-rates', '/dashboard/reports', '/dashboard/audit',
+  '/dashboard/boxapp-sync', '/dashboard/inventory', '/dashboard/surplus',
 ];
 
 const WORKER_PREFIX = '/worker';

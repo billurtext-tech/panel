@@ -25,7 +25,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
     if (!loading && user && ADMIN_ROLES.has(user.role_id) && user.role_id !== "boxing") {
-      router.replace("/");
+      router.replace("/dashboard");
     }
   }, [loading, user, router]);
 

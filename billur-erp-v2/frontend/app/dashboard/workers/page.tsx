@@ -539,7 +539,7 @@ export default function WorkersPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <Link href={`/workers/${worker.id}`}>
+                          <Link href={`/dashboard/workers/${worker.id}`}>
                             <Eye className="mr-2 h-4 w-4" /> View Profile
                           </Link>
                         </DropdownMenuItem>
