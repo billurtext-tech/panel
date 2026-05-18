@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  const hasPermission = (perm: string) => !!user?.permissions.includes(perm);
+  const hasPermission = (perm: string) => !!user?.permissions?.includes(perm);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, hasPermission }}>

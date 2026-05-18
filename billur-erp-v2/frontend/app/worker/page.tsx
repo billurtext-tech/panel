@@ -15,12 +15,18 @@ interface WorkerStats {
 }
 
 export default function WorkerHomePage() {
+  const { data: worker } = useQuery({
+    queryKey: ["my-worker"],
+    queryFn: () => api.get<{ id: string } | null>("/api/worker-profile/me"),
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["worker-stats"],
     queryFn: () => api.get<WorkerStats>("/api/worker-profile/me/stats"),
+    enabled: worker !== undefined,
   });
 
-  if (isLoading) {
+  if (worker === undefined || isLoading) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -28,12 +34,25 @@ export default function WorkerHomePage() {
     );
   }
 
-  const stats = data || {
+  const empty = {
     today: { qty: 0, scans: 0 },
     week: { qty: 0, scans: 0 },
     month: { qty: 0, scans: 0 },
-    models: [],
+    models: [] as WorkerStats["models"],
     attendance: { is_checked_in: false, last_record: null },
+  };
+
+  const stats: WorkerStats = {
+    ...empty,
+    ...data,
+    today: typeof data?.today === "object" && data.today !== null ? data.today : empty.today,
+    week: typeof data?.week === "object" && data.week !== null ? data.week : empty.week,
+    month: typeof data?.month === "object" && data.month !== null ? data.month : empty.month,
+    models: Array.isArray(data?.models) ? data.models : empty.models,
+    attendance:
+      data?.attendance && typeof data.attendance === "object"
+        ? data.attendance
+        : empty.attendance,
   };
 
   return (
@@ -42,6 +61,15 @@ export default function WorkerHomePage() {
         <h1 className="text-xl font-bold">Salom!</h1>
         <p className="text-sm text-muted-foreground">Bugungi ishlab chiqarish statistikangiz</p>
       </div>
+
+      {worker === null && (
+        <Card className="border-amber-500/50 bg-amber-500/5">
+          <CardContent className="pt-4 text-sm text-muted-foreground">
+            Hisobingizga ishchi kartasi biriktirilmagan. Administrator «Foydalanuvchilar» bo&apos;limida
+            tabel raqami bilan ishchini biriktirsin — shundan keyin statistika va skan ishlaydi.
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="pt-4 flex items-center justify-between">

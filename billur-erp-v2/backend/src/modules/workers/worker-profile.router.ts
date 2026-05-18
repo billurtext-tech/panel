@@ -37,7 +37,15 @@ router.get('/me', async (req: AuthRequest, res: Response, next: NextFunction) =>
 router.get('/me/stats', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const wid = await workerForUser(req.user!.id);
-    if (!wid) return res.json({ today: 0, week: 0, month: 0, models: [], attendance: null });
+    if (!wid) {
+      return res.json({
+        today: { qty: 0, scans: 0 },
+        week: { qty: 0, scans: 0 },
+        month: { qty: 0, scans: 0 },
+        models: [],
+        attendance: { is_checked_in: false, last_record: null },
+      });
+    }
 
     const [today, week, month, models, attendance] = await Promise.all([
       pool.query(`
