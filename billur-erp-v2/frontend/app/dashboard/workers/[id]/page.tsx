@@ -85,20 +85,27 @@ const recentScans = [
   { date: "2024-01-20 14:22:18", box: "BOX-2024-0525", stage: "Packing", qty: 47 },
 ]
 
-export default function WorkerDetailPage({
+export default function Page({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: { id: string }
 }) {
-  const { id } = use(params)
+  const { id } = params
+
   const { data: workers = [] } = useWorkers()
-  const worker = workers.find((w) => w.id === id) || workers[0]
+
+  const worker = workers.find((w) => w.id === id)
+
   const { data: workerDocuments = [] } = useQuery<any[]>({
     queryKey: ['worker-documents', worker?._real_id],
-    queryFn: () => api.get(`/api/worker-profile/${worker._real_id}/documents`),
+    queryFn: () =>
+      api.get(`/api/worker-profile/${worker!._real_id}/documents`),
     enabled: !!worker?._real_id,
   })
-  if (!worker) return <div className="p-6">Yuklanmoqda...</div>
+
+  if (!worker) {
+    return <div className="p-6">Yuklanmoqda...</div>
+  }
 
   const documentStatusColors: Record<string, string> = {
     Verified: "bg-green-500",
