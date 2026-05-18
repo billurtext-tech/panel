@@ -1,9 +1,15 @@
+import path from "path";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ignoreBuildErrors / ignoreDuringBuilds intentionally NOT set:
-  // we want real type checking during build.
   eslint: { ignoreDuringBuilds: true },
   images: { unoptimized: true },
+
+  webpack: (config) => {
+    config.resolve.alias['@'] = path.resolve(process.cwd());
+    return config;
+  },
+
   async rewrites() {
     const backend = process.env.BACKEND_URL || 'http://localhost:3001';
     return [
