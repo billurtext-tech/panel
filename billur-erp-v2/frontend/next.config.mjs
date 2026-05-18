@@ -16,9 +16,14 @@ const nextConfig = {
   },
 
   async rewrites() {
-    const backend = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backend =
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'http://localhost:3001';
+    const base = backend.replace(/\/$/, '');
     return [
-      { source: '/api/:path*', destination: `${backend}/api/:path*` },
+      { source: '/api/:path*', destination: `${base}/api/:path*` },
+      { source: '/uploads/:path*', destination: `${base}/uploads/:path*` },
     ];
   },
 };

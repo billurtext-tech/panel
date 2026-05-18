@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,6 +53,7 @@ import {
   AlertCircle,
 } from "lucide-react"
 import { useOrders } from "@/lib/api/hooks"
+import { CreateOrderDialog } from "@/components/orders/create-order-dialog"
 import { Label } from "@/components/ui/label"
 
 const statusColors: Record<string, string> = {
@@ -211,109 +212,7 @@ export default function OrdersPage() {
             Manage and track all production orders
           </p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> New Order
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create New Order</DialogTitle>
-              <DialogDescription>
-                Add a new production order to the system
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Order Type</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="speka">Speka</SelectItem>
-                      <SelectItem value="set">SET</SelectItem>
-                      <SelectItem value="standard">Standard</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Client</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="zara">Zara Europe</SelectItem>
-                      <SelectItem value="hm">H&M Nordic</SelectItem>
-                      <SelectItem value="mango">Mango Spain</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Model</Label>
-                  <Input placeholder="e.g., Summer Dress SD-401" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Quantity</Label>
-                  <Input type="number" placeholder="5000" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Color Code</Label>
-                  <Input placeholder="BLU-042" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Size Range</Label>
-                  <Input placeholder="XS-XL" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Deadline</Label>
-                  <Input type="date" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Priority</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Production Line</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select line" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="a">Line A</SelectItem>
-                      <SelectItem value="b">Line B</SelectItem>
-                      <SelectItem value="c">Line C</SelectItem>
-                      <SelectItem value="d">Line D</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline">Cancel</Button>
-                <Button>Create Order</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <CreateOrderDialog />
       </div>
 
       {/* Stats Cards */}

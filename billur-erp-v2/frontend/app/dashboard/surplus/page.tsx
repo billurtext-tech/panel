@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
+import { getErrorMessage, logApiError } from "@/lib/api/errors"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useClients } from "@/lib/api/hooks"
 import { toast } from "sonner"
@@ -29,12 +30,14 @@ const STATUS_COLORS: Record<string, string> = {
 export default function SurplusPage() {
   const { hasPermission } = useAuth()
   const qc = useQueryClient()
-  const [statusFilter, setStatusFilter] = useState('in_warehouse')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [selling, setSelling] = useState<any>(null)
 
   const { data = [], isLoading } = useQuery<any[]>({
     queryKey: ['surplus', statusFilter],
-    queryFn: () => api.get(`/api/surplus${statusFilter ? `?status=${statusFilter}` : ''}`),
+    queryFn: () => api.get(
+      `/api/surplus${statusFilter && statusFilter !== 'all' ? `?status=${statusFilter}` : ''}`
+    ),
   })
 
   return (
@@ -61,7 +64,7 @@ export default function SurplusPage() {
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Barcha</SelectItem>
+                <SelectItem value="all">Barcha</SelectItem>
                 <SelectItem value="in_warehouse">Omborda</SelectItem>
                 <SelectItem value="reserved">Buyurtilgan</SelectItem>
                 <SelectItem value="sold">Sotilgan</SelectItem>
@@ -144,7 +147,7 @@ function SellDialog({ item, onClose, onDone }: { item: any; onClose: () => void;
       notes: notes || null
     }),
     onSuccess: () => { toast.success('Sotildi'); onDone(); onClose() },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e) => { logApiError('surplus.sell', e); toast.error(getErrorMessage(e)) },
   })
 
   const total = price && qty ? Number(price) * Number(qty) : 0

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
+import { roleNeedsWorkerLink } from "@/lib/auth/roles"
 import { toast } from "sonner"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -55,7 +56,9 @@ export default function MyProfilePage() {
     <div className="p-6">
       <Alert>
         <AlertDescription>
-          Sizning userga worker biriktirilmagan. Admin bilan bog'laning.
+          {roleNeedsWorkerLink(user?.role_id)
+            ? "Sizning hisobingizga ishchi kartasi biriktirilmagan. Administrator «Foydalanuvchilar» bo'limida tabel raqami bilan ishchini biriktirsin."
+            : "Bu sahifa ishchi hisoblari uchun. «Ishchilar» bo'limidan foydalaning."}
         </AlertDescription>
       </Alert>
     </div>

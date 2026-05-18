@@ -24,7 +24,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get('token')?.value;
+  const token =
+    request.cookies.get('token')?.value ||
+    request.cookies.get('billur_token')?.value;
   if (!token && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url));
   }

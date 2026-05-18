@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       const token = getToken();
       if (!token) { setLoading(false); return; }
+      saveToken(token);
       try {
         const me = await api.get<User>('/api/auth/me');
         setUser(me);
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     saveToken(res.token);
     setUser(res.user);
+    // Cookie sync for Next.js middleware (also set by backend Set-Cookie via proxy)
     return res.user;
   };
 

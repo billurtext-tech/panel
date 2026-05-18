@@ -373,12 +373,12 @@ export function useDashboardStats() {
       return {
         activeOrders: o.orders?.active || 0,
         todayProduction: todayQty,
-        defectRate: 2.1,
+        defectRate: 0,
         activeWorkers: o.workers || 0,
         packedBoxes: 0,
         delayedOrders: o.orders?.problem || 0,
-        warehouseStock: 100,
-        surplusCount: 0,
+        warehouseStock: 0,
+        surplusCount: o.open_discrepancies || 0,
       };
     },
     refetchInterval: 30_000,

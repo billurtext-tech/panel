@@ -25,6 +25,8 @@ router.get('/', requirePermission('workers.read'), async (req: AuthRequest, res:
     if (position) { params.push(position); conds.push(`w.position = $${params.length}`); }
     if (active === 'true')  conds.push(`w.is_active = true`);
     if (active === 'false') conds.push(`w.is_active = false`);
+    const unlinked = getOptionalQueryString(req.query.unlinked);
+    if (unlinked === 'true') conds.push(`w.user_id IS NULL`);
 
     const { rows } = await pool.query(`
       SELECT w.*,
