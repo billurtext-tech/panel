@@ -18,7 +18,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Fix migration 003 permissions that used wrong column names (idempotent)
 INSERT INTO permissions (id, resource, action, description)
-SELECT v.id, split_part(v.id, '.', 1), split_part(v.id, '.', 2), v.desc
+SELECT v.id, split_part(v.id, '.', 1), split_part(v.id, '.', 2), v.description
 FROM (VALUES
   ('production.qr.create',   'production', 'qr.create',   'Production QR code yaratish'),
   ('production.qr.scan',   'production', 'qr.scan',     'Stage scan START/FINISH'),
@@ -36,7 +36,7 @@ FROM (VALUES
   ('boxapp.view',           'boxapp',     'view',        'BoxApp sync ko''rish'),
   ('boxapp.sync',           'boxapp',     'sync',        'BoxApp sync qilish'),
   ('boxapp.retry',          'boxapp',     'retry',       'BoxApp retry')
-) AS v(id, resource, action, desc)
+)  AS v(id, resource, action, description)
 WHERE NOT EXISTS (SELECT 1 FROM permissions p WHERE p.id = v.id)
 ON CONFLICT (id) DO NOTHING;
 
