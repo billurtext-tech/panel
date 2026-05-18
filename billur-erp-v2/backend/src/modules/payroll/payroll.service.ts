@@ -44,7 +44,17 @@ export async function calculatePayroll(opts: {
     }
 
     // Look up rates for each (model, stage) — fall back to default per stage
-    const detailRows: any[] = [];
+    const detailRows: {
+      scan_id: number;
+      qr_code_id: string;
+      order_id: string;
+      model_id: string;
+      stage: string;
+      quantity: number;
+      rate_per_piece: number;
+      amount: number;
+      finished_at: Date | string;
+    }[] = [];
     let totalQty = 0;
     let totalAmt = 0;
 

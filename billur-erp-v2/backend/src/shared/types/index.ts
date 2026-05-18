@@ -8,11 +8,25 @@ export interface User {
   permissions: string[];
 }
 
+/** Express request with session user and parsed cookies from custom cookieParser. */
 export interface AuthRequest extends Request {
   user?: User;
+  cookies?: Record<string, string>;
   ip_address?: string;
   device_id?: string;
+  file?: Express.Multer.File;
 }
+
+export type SqlParam = string | number | boolean | Date | null;
+export type SqlParams = SqlParam[];
+
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 
 export class HttpError extends Error {
   constructor(public status: number, message: string, public code?: string) {

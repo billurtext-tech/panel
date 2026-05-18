@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
 import { hashPassword } from '../../shared/utils/crypto';
 import { AuthRequest, BadRequest, NotFound, Conflict } from '../../shared/types';
@@ -8,7 +8,7 @@ import { auditLog, clientIp } from '../../shared/middleware/security';
 const router = Router();
 router.use(requireAuth);
 
-router.get('/', requirePermission('users.read'), async (req, res, next) => {
+router.get('/', requirePermission('users.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT id, username, full_name, role_id, phone, email,
@@ -21,7 +21,7 @@ router.get('/', requirePermission('users.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', requirePermission('users.create'), async (req: AuthRequest, res, next) => {
+router.post('/', requirePermission('users.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { username, password, role_id, full_name, phone, email } = req.body || {};
     if (!username || !password || !role_id || !full_name) throw BadRequest('Maydonlar to\'liq emas');
@@ -51,7 +51,7 @@ router.post('/', requirePermission('users.create'), async (req: AuthRequest, res
   } catch (e) { next(e); }
 });
 
-router.get('/:id', requirePermission('users.read'), async (req, res, next) => {
+router.get('/:id', requirePermission('users.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT id, username, full_name, role_id, phone, email,
@@ -63,7 +63,7 @@ router.get('/:id', requirePermission('users.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.put('/:id', requirePermission('users.update'), async (req: AuthRequest, res, next) => {
+router.put('/:id', requirePermission('users.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { full_name, phone, email, is_active, role_id } = req.body || {};
     const sel = await pool.query(`SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`, [req.params.id]);
@@ -91,7 +91,7 @@ router.put('/:id', requirePermission('users.update'), async (req: AuthRequest, r
   } catch (e) { next(e); }
 });
 
-router.put('/:id/password', requirePermission('users.update'), async (req: AuthRequest, res, next) => {
+router.put('/:id/password', requirePermission('users.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { password } = req.body || {};
     if (!password || typeof password !== 'string' || password.length < 6 || password.length > 128) {
@@ -112,7 +112,7 @@ router.put('/:id/password', requirePermission('users.update'), async (req: AuthR
   } catch (e) { next(e); }
 });
 
-router.delete('/:id', requirePermission('users.delete'), async (req: AuthRequest, res, next) => {
+router.delete('/:id', requirePermission('users.delete'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const sel = await pool.query(`SELECT username FROM users WHERE id = $1 AND deleted_at IS NULL`, [req.params.id]);
     if (!sel.rows.length) throw NotFound();
@@ -129,14 +129,14 @@ router.delete('/:id', requirePermission('users.delete'), async (req: AuthRequest
   } catch (e) { next(e); }
 });
 
-router.get('/_meta/roles', requirePermission('users.read'), async (req, res, next) => {
+router.get('/_meta/roles', requirePermission('users.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`SELECT * FROM roles ORDER BY id`);
     res.json(rows);
   } catch (e) { next(e); }
 });
 
-router.get('/_meta/permissions', requirePermission('users.read'), async (req, res, next) => {
+router.get('/_meta/permissions', requirePermission('users.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`SELECT * FROM permissions ORDER BY resource, action`);
     res.json(rows);

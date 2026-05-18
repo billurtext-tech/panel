@@ -4,6 +4,8 @@
 // retains the job and a background worker retries with exponential back-off.
 
 import { pool } from '../../shared/database/pool';
+import type { JsonValue } from '../../shared/types';
+import type { BoxSyncRecord, RemoteApiResponse, ShipmentSyncRecord } from './boxapp.types';
 
 const BOXAPP_URL = process.env.BOXAPP_API_URL || 'https://app.andbillur.com';
 const BOXAPP_KEY = process.env.BOXAPP_API_KEY || '';
@@ -16,7 +18,7 @@ export interface EnqueueOpts {
   entity_type: SyncEntityType;
   entity_id: string;
   operation: SyncOperation;
-  payload: any;
+  payload: JsonValue;
   created_by?: string;
 }
 
@@ -82,8 +84,8 @@ export async function processJob(jobId: string): Promise<boolean> {
     clearTimeout(tid);
 
     const text = await res.text();
-    let parsed: any = null;
-    try { parsed = JSON.parse(text); } catch { parsed = { raw: text }; }
+    let parsed: RemoteApiResponse | null = null;
+    try { parsed = JSON.parse(text) as RemoteApiResponse; } catch { parsed = { raw: text }; }
 
     if (!res.ok) {
       await fail(job.id, `HTTP ${res.status}: ${text.slice(0, 500)}`);
@@ -98,8 +100,9 @@ export async function processJob(jobId: string): Promise<boolean> {
     `, [parsed?.id || parsed?.uid || null, JSON.stringify(parsed), job.id]);
     return true;
 
-  } catch (e: any) {
-    await fail(job.id, e?.message || String(e));
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await fail(job.id, msg);
     return false;
   }
 }
@@ -143,12 +146,12 @@ export async function processQueue(limit = 20): Promise<{ processed: number; suc
 /** Background runner — call once on app startup. */
 export function startBackgroundSync(intervalMs = 60_000) {
   setInterval(() => {
-    processQueue().catch(err => console.error('[boxapp sync]', err));
+    processQueue().catch((err: unknown) => console.error('[boxapp sync]', err));
   }, intervalMs);
 }
 
 // ── Helpers to enqueue from other modules ────────────────────────────────
-export async function syncBoxCreate(box: any, userId?: string) {
+export async function syncBoxCreate(box: BoxSyncRecord, userId?: string) {
   return enqueue({
     entity_type: 'box',
     entity_id: box.uid,
@@ -172,7 +175,7 @@ export async function syncBoxCreate(box: any, userId?: string) {
   });
 }
 
-export async function syncShipmentCreate(shipment: any, userId?: string) {
+export async function syncShipmentCreate(shipment: ShipmentSyncRecord, userId?: string) {
   return enqueue({
     entity_type: 'shipment',
     entity_id: shipment.id,
@@ -189,12 +192,59 @@ export async function syncShipmentCreate(shipment: any, userId?: string) {
   });
 }
 
-export async function syncShipmentUpdate(shipment: any, userId?: string) {
+export async function syncShipmentUpdate(shipment: ShipmentSyncRecord, userId?: string) {
   return enqueue({
     entity_type: 'shipment',
     entity_id: shipment.id,
     operation: 'update',
     payload: shipment,
+    created_by: userId,
+  });
+}
+
+export async function syncBoxUpdate(box: BoxSyncRecord, userId?: string) {
+  return enqueue({
+    entity_type: 'box',
+    entity_id: box.uid,
+    operation: 'update',
+    payload: {
+      uid: box.uid,
+      box_number: box.box_num,
+      order_id: box.order_id,
+      order_number: box.zakaz,
+      type: box.type,
+      model: box.model,
+      color_code: box.color,
+      kg: box.kg,
+      status: box.status,
+      sizes: box.sizes,
+      items: box.items,
+    },
+    created_by: userId,
+  });
+}
+
+export async function syncBoxDelete(uid: string, userId?: string) {
+  return enqueue({
+    entity_type: 'box',
+    entity_id: uid,
+    operation: 'delete',
+    payload: { uid },
+    created_by: userId,
+  });
+}
+
+export async function syncOrderToBoxApp(order: {
+  id: string;
+  external_code: string;
+  status: string;
+  items: unknown[];
+}, userId?: string) {
+  return enqueue({
+    entity_type: 'order',
+    entity_id: order.id,
+    operation: 'create',
+    payload: order,
     created_by: userId,
   });
 }

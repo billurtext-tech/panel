@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
 import { AuthRequest, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
@@ -7,7 +7,7 @@ import { auditLog, clientIp } from '../../shared/middleware/security';
 const router = Router();
 router.use(requireAuth);
 
-router.get('/', requirePermission('clients.read'), async (req, res, next) => {
+router.get('/', requirePermission('clients.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT c.*,
@@ -21,7 +21,7 @@ router.get('/', requirePermission('clients.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', requirePermission('clients.create'), async (req: AuthRequest, res, next) => {
+router.post('/', requirePermission('clients.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { code, name, contact_person, phone, email, address, notes,
             pricing_type, default_pricing, services } = req.body || {};
@@ -49,7 +49,7 @@ router.post('/', requirePermission('clients.create'), async (req: AuthRequest, r
   } catch (e) { next(e); }
 });
 
-router.get('/:id', requirePermission('clients.read'), async (req, res, next) => {
+router.get('/:id', requirePermission('clients.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`SELECT * FROM clients WHERE id = $1 AND deleted_at IS NULL`,
       [req.params.id]);
@@ -58,7 +58,7 @@ router.get('/:id', requirePermission('clients.read'), async (req, res, next) => 
   } catch (e) { next(e); }
 });
 
-router.put('/:id', requirePermission('clients.update'), async (req: AuthRequest, res, next) => {
+router.put('/:id', requirePermission('clients.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { name, contact_person, phone, email, address, notes,
             pricing_type, default_pricing, services, is_active } = req.body || {};
@@ -95,7 +95,7 @@ router.put('/:id', requirePermission('clients.update'), async (req: AuthRequest,
   } catch (e) { next(e); }
 });
 
-router.delete('/:id', requirePermission('clients.delete'), async (req: AuthRequest, res, next) => {
+router.delete('/:id', requirePermission('clients.delete'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const sel = await pool.query(`SELECT 1 FROM clients WHERE id = $1 AND deleted_at IS NULL`,
       [req.params.id]);
@@ -116,7 +116,7 @@ router.delete('/:id', requirePermission('clients.delete'), async (req: AuthReque
   } catch (e) { next(e); }
 });
 
-router.get('/:id/orders', requirePermission('clients.read'), async (req, res, next) => {
+router.get('/:id/orders', requirePermission('clients.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT id, order_type, external_code, status, deadline, total_pieces, created_at
@@ -128,7 +128,7 @@ router.get('/:id/orders', requirePermission('clients.read'), async (req, res, ne
   } catch (e) { next(e); }
 });
 
-router.get('/:id/transactions', requirePermission('clients.read'), async (req, res, next) => {
+router.get('/:id/transactions', requirePermission('clients.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT * FROM client_transactions
@@ -140,7 +140,7 @@ router.get('/:id/transactions', requirePermission('clients.read'), async (req, r
   } catch (e) { next(e); }
 });
 
-router.post('/:id/transactions', requirePermission('clients.update'), async (req: AuthRequest, res, next) => {
+router.post('/:id/transactions', requirePermission('clients.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { type, amount_uzs, description } = req.body || {};
     if (!type || typeof amount_uzs !== 'number') throw BadRequest('type va amount_uzs kerak');

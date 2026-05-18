@@ -2,8 +2,8 @@
 // Frontend connects to /api/sse/stream and receives JSON events when scans
 // happen, BoxApp syncs complete, quality issues arise, etc.
 
-import { Router, Response } from 'express';
-import { AuthRequest } from '../../shared/types';
+import { Router, Response, NextFunction } from 'express';
+import { AuthRequest, JsonValue } from '../../shared/types';
 import { requireAuth } from '../../shared/middleware/auth';
 
 const router = Router();
@@ -36,7 +36,7 @@ router.get('/stream', requireAuth, (req: AuthRequest, res) => {
 });
 
 /** Publish an event to all SSE subscribers. */
-export function publishEvent(event: string, data: any) {
+export function publishEvent(event: string, data: JsonValue) {
   const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   for (const sub of subscribers) {
     try { sub.res.write(payload); }

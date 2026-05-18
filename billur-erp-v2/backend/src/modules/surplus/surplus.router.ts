@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool, withTransaction } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound, Conflict } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 
@@ -9,10 +9,10 @@ router.use(requireAuth);
 
 const VALID_STATUSES = ['in_warehouse', 'reserved', 'sold', 'discarded'];
 
-router.get('/', requirePermission('surplus.read'), async (req, res, next) => {
+router.get('/', requirePermission('surplus.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, model_id, client_id } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
 
     if (status)    { params.push(status);    conds.push(`s.status = $${params.length}`); }
@@ -42,7 +42,7 @@ router.get('/', requirePermission('surplus.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', requirePermission('surplus.update'), async (req: AuthRequest, res, next) => {
+router.post('/', requirePermission('surplus.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const {
       source_order_id, source_item_id, client_id,
@@ -82,7 +82,7 @@ router.post('/', requirePermission('surplus.update'), async (req: AuthRequest, r
   } catch (e) { next(e); }
 });
 
-router.put('/:id', requirePermission('surplus.update'), async (req: AuthRequest, res, next) => {
+router.put('/:id', requirePermission('surplus.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, notes, qty } = req.body || {};
     if (status && !VALID_STATUSES.includes(status)) {
@@ -115,7 +115,7 @@ router.put('/:id', requirePermission('surplus.update'), async (req: AuthRequest,
   } catch (e) { next(e); }
 });
 
-router.post('/:id/sell', requirePermission('surplus.sell'), async (req: AuthRequest, res, next) => {
+router.post('/:id/sell', requirePermission('surplus.sell'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { client_id, sale_qty, sale_price_uzs, notes } = req.body || {};
     const qty = Number(sale_qty);
@@ -204,7 +204,7 @@ router.post('/:id/sell', requirePermission('surplus.sell'), async (req: AuthRequ
   } catch (e) { next(e); }
 });
 
-router.get('/balance', requirePermission('surplus.read'), async (req, res, next) => {
+router.get('/balance', requirePermission('surplus.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT s.model_id, m.code AS model_code, m.name AS model_name,

@@ -1,11 +1,12 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
+import { AuthRequest } from '../../shared/types';
 import { requireAuth } from '../../shared/middleware/auth';
 
 const router = Router();
 router.use(requireAuth);
 
-router.get('/overview', async (req, res, next) => {
+router.get('/overview', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const today = new Date().toISOString().slice(0, 10);
 
@@ -39,7 +40,7 @@ router.get('/overview', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.get('/orders-by-stage', async (req, res, next) => {
+router.get('/orders-by-stage', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -68,7 +69,7 @@ router.get('/orders-by-stage', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.get('/recent-events', async (req, res, next) => {
+router.get('/recent-events', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT pe.*, w.full_name AS worker_name, m.code AS model_code,
@@ -87,7 +88,7 @@ router.get('/recent-events', async (req, res, next) => {
 });
 
 // 7-day production chart by stage
-router.get('/production-chart', async (req, res, next) => {
+router.get('/production-chart', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -110,7 +111,7 @@ router.get('/production-chart', async (req, res, next) => {
 });
 
 // 7-day quality chart (defects + rework + rejects)
-router.get('/quality-chart', async (req, res, next) => {
+router.get('/quality-chart', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT

@@ -16,7 +16,7 @@ export const pool = new Pool({
   connectionTimeoutMillis: 5000
 });
 
-pool.on('error', (err) => console.error('PG pool error:', err));
+pool.on('error', (err: Error) => console.error('PG pool error:', err));
 
 // Helper for transactions
 export async function withTransaction<T>(

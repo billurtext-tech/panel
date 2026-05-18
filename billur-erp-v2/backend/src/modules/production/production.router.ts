@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool, withTransaction } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 import { recordProductionEvent, STAGE_QTY_COLUMN } from './production.events';
@@ -11,7 +11,7 @@ router.use(requireAuth);
 // ── POST /api/production/events — manual stage advance ─────────────────────
 router.post('/events',
   requirePermission('production.events.create'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const {
       order_item_id, to_stage, qty, from_stage,
@@ -53,10 +53,10 @@ router.post('/events',
 });
 
 // ── GET /api/production/events — recent events feed ────────────────────────
-router.get('/events', requirePermission('production.read'), async (req, res, next) => {
+router.get('/events', requirePermission('production.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { order_id, order_item_id, worker_id, stage, since, limit } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
 
     if (order_id)      { params.push(order_id);      conds.push(`pe.order_id = $${params.length}`); }
@@ -99,7 +99,7 @@ router.get('/events', requirePermission('production.read'), async (req, res, nex
 // Per-item, per-stage progress matrix for one order.
 router.get('/orders/:id/progress',
   requirePermission('production.read'),
-  async (req, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const ord = await pool.query(`
       SELECT id, order_type, external_code, status, deadline, total_pieces,
@@ -162,7 +162,7 @@ router.get('/orders/:id/progress',
 // next stage hasn't caught up.
 router.get('/stages/:stage/queue',
   requirePermission('production.read'),
-  async (req, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stage = req.params.stage;
     const col = STAGE_QTY_COLUMN[stage];
@@ -201,7 +201,7 @@ router.get('/stages/:stage/queue',
 });
 
 // ── GET /api/production/today ──────────────────────────────────────────────
-router.get('/today', requirePermission('production.read'), async (req, res, next) => {
+router.get('/today', requirePermission('production.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT pe.to_stage AS stage_id,

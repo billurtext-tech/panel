@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool, withTransaction } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 
@@ -9,10 +9,10 @@ router.use(requireAuth);
 
 const VALID_MOVEMENT_TYPES = ['receipt', 'issue', 'transfer', 'adjustment', 'return'];
 
-router.get('/movements', requirePermission('inventory.read'), async (req, res, next) => {
+router.get('/movements', requirePermission('inventory.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { warehouse_id, model_id, raw_material_id, type, since, limit } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
 
     if (warehouse_id)    { params.push(warehouse_id);    conds.push(`im.warehouse_id = $${params.length}`); }
@@ -50,7 +50,7 @@ router.get('/movements', requirePermission('inventory.read'), async (req, res, n
   } catch (e) { next(e); }
 });
 
-router.post('/movements', requirePermission('inventory.move'), async (req: AuthRequest, res, next) => {
+router.post('/movements', requirePermission('inventory.move'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const {
       warehouse_id, movement_type, qty,
@@ -146,10 +146,10 @@ router.post('/movements', requirePermission('inventory.move'), async (req: AuthR
   } catch (e) { next(e); }
 });
 
-router.get('/balance/goods', requirePermission('inventory.read'), async (req, res, next) => {
+router.get('/balance/goods', requirePermission('inventory.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { warehouse_id, model_id } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [`im.model_id IS NOT NULL`];
 
     if (warehouse_id) { params.push(warehouse_id); conds.push(`im.warehouse_id = $${params.length}`); }
@@ -178,7 +178,7 @@ router.get('/balance/goods', requirePermission('inventory.read'), async (req, re
   } catch (e) { next(e); }
 });
 
-router.get('/materials', requirePermission('inventory.read'), async (req, res, next) => {
+router.get('/materials', requirePermission('inventory.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT id, code, name, unit, current_stock, min_stock, default_price, is_active,
@@ -191,7 +191,7 @@ router.get('/materials', requirePermission('inventory.read'), async (req, res, n
   } catch (e) { next(e); }
 });
 
-router.post('/materials', requirePermission('inventory.move'), async (req: AuthRequest, res, next) => {
+router.post('/materials', requirePermission('inventory.move'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { code, name, unit, current_stock, min_stock, default_price } = req.body || {};
     if (!code || !name || !unit) throw BadRequest("code, name, unit kerak");
@@ -215,7 +215,7 @@ router.post('/materials', requirePermission('inventory.move'), async (req: AuthR
   } catch (e) { next(e); }
 });
 
-router.get('/today', requirePermission('inventory.read'), async (req, res, next) => {
+router.get('/today', requirePermission('inventory.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT im.movement_type,

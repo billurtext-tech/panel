@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound, Forbidden } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound, Forbidden } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 import { calculatePayroll, calculateAllPayroll } from './payroll.service';
@@ -9,7 +9,7 @@ const router = Router();
 router.use(requireAuth);
 
 // ── Piece rates CRUD ─────────────────────────────────────────────────────
-router.get('/rates', requirePermission('piece_rates.read'), async (req, res, next) => {
+router.get('/rates', requirePermission('piece_rates.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT pr.*, m.code AS model_code, m.name AS model_name,
@@ -24,7 +24,7 @@ router.get('/rates', requirePermission('piece_rates.read'), async (req, res, nex
   } catch (e) { next(e); }
 });
 
-router.post('/rates', requirePermission('piece_rates.update'), async (req: AuthRequest, res, next) => {
+router.post('/rates', requirePermission('piece_rates.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { model_id, stage, operation_name, rate_per_piece, active_from } = req.body || {};
     if (!stage) throw BadRequest('stage kerak');
@@ -49,7 +49,7 @@ router.post('/rates', requirePermission('piece_rates.update'), async (req: AuthR
   } catch (e) { next(e); }
 });
 
-router.put('/rates/:id', requirePermission('piece_rates.update'), async (req: AuthRequest, res, next) => {
+router.put('/rates/:id', requirePermission('piece_rates.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rate_per_piece, operation_name, is_active, active_to } = req.body || {};
     const r = await pool.query(`
@@ -76,7 +76,7 @@ router.put('/rates/:id', requirePermission('piece_rates.update'), async (req: Au
 // ── Calculate single worker ──────────────────────────────────────────────
 router.post('/calculate',
   requirePermission('payroll.calculate'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { worker_id, period_start, period_end } = req.body || {};
     const r = await calculatePayroll({
@@ -98,7 +98,7 @@ router.post('/calculate',
 // ── Calculate all workers for a period ───────────────────────────────────
 router.post('/calculate-all',
   requirePermission('payroll.calculate'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { period_start, period_end } = req.body || {};
     if (!period_start || !period_end) throw BadRequest('period_start va period_end kerak');
@@ -119,7 +119,7 @@ router.post('/calculate-all',
 });
 
 // ── List payroll entries ─────────────────────────────────────────────────
-router.get('/entries', async (req: AuthRequest, res, next) => {
+router.get('/entries', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     // Worker can see only their own; admin can see all
     const canSeeAll = req.user!.permissions.includes('payroll.view_all');
@@ -128,7 +128,7 @@ router.get('/entries', async (req: AuthRequest, res, next) => {
     }
 
     const { worker_id, status, period_start, period_end } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
 
     if (!canSeeAll) {
@@ -162,7 +162,7 @@ router.get('/entries', async (req: AuthRequest, res, next) => {
 });
 
 // ── Single payroll detail ────────────────────────────────────────────────
-router.get('/entries/:id', async (req: AuthRequest, res, next) => {
+router.get('/entries/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const canSeeAll = req.user!.permissions.includes('payroll.view_all');
     const entry = await pool.query(`
@@ -195,7 +195,7 @@ router.get('/entries/:id', async (req: AuthRequest, res, next) => {
 
 // ── Update bonus / penalty / advance ─────────────────────────────────────
 router.patch('/entries/:id', requirePermission('payroll.approve'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { bonus_amount, penalty_amount, advance_amount, notes } = req.body || {};
     const r = await pool.query(`
@@ -224,7 +224,7 @@ router.patch('/entries/:id', requirePermission('payroll.approve'),
 // ── Approve payroll ──────────────────────────────────────────────────────
 router.post('/entries/:id/approve',
   requirePermission('payroll.approve'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       UPDATE payroll_entries
@@ -246,7 +246,7 @@ router.post('/entries/:id/approve',
 
 router.post('/entries/:id/pay',
   requirePermission('payroll.approve'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       UPDATE payroll_entries SET status = 'paid', paid_at = NOW()

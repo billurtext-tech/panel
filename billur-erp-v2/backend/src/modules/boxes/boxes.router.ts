@@ -1,9 +1,10 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool, withTransaction } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound, Conflict } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
-import { syncBoxCreate } from '../boxapp/boxapp.service';
+import { syncBoxCreate, syncBoxUpdate, syncBoxDelete } from '../boxapp/boxapp.service';
+import type { BoxSyncRecord } from '../boxapp/boxapp.types';
 
 const router = Router();
 router.use(requireAuth);
@@ -11,7 +12,7 @@ router.use(requireAuth);
 const VALID_TYPES = ['simple', 'mix'];
 const VALID_STATUSES = ['packed', 'warehouse', 'shipping', 'shipped'];
 
-router.get('/_stats/by-status', requirePermission('box.read'), async (req, res, next) => {
+router.get('/_stats/by-status', requirePermission('box.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT status, COUNT(*)::int AS count, COALESCE(SUM(kg), 0)::numeric AS total_kg
@@ -23,10 +24,10 @@ router.get('/_stats/by-status', requirePermission('box.read'), async (req, res, 
   } catch (e) { next(e); }
 });
 
-router.get('/', requirePermission('box.read'), async (req, res, next) => {
+router.get('/', requirePermission('box.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, zakaz, order_id } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
 
     if (status)    { params.push(status);    conds.push(`b.status = $${params.length}`); }
@@ -47,7 +48,7 @@ router.get('/', requirePermission('box.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', requirePermission('box.create'), async (req: AuthRequest, res, next) => {
+router.post('/', requirePermission('box.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { uid, box_num, zakaz, order_id, type, kg, model, color, sizes, items, status } = req.body || {};
 
@@ -93,7 +94,7 @@ router.post('/', requirePermission('box.create'), async (req: AuthRequest, res, 
     });
 
     // Push to BoxApp asynchronously (queued — won't block response)
-    syncBoxCreate(rows[0], req.user!.id).catch(err => {
+    syncBoxCreate(rows[0] as BoxSyncRecord, req.user!.id).catch((err: unknown) => {
       console.error('[boxapp sync enqueue]', err);
     });
 
@@ -101,7 +102,7 @@ router.post('/', requirePermission('box.create'), async (req: AuthRequest, res, 
   } catch (e) { next(e); }
 });
 
-router.get('/:uid', requirePermission('box.read'), async (req, res, next) => {
+router.get('/:uid', requirePermission('box.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT b.*, o.external_code AS order_code
@@ -114,7 +115,7 @@ router.get('/:uid', requirePermission('box.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.put('/:uid', requirePermission('box.update'), async (req: AuthRequest, res, next) => {
+router.put('/:uid', requirePermission('box.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { kg, status, model, color, sizes, items } = req.body || {};
     if (status && !VALID_STATUSES.includes(status)) {
@@ -152,8 +153,11 @@ router.put('/:uid', requirePermission('box.update'), async (req: AuthRequest, re
         JSON.stringify(history),
         req.params.uid
       ]);
-      return { ok: true };
+      const updated = await client.query(`SELECT * FROM boxes WHERE uid = $1`, [req.params.uid]);
+      return updated.rows[0];
     });
+
+    syncBoxUpdate(result as BoxSyncRecord, req.user!.id).catch(console.error);
 
     await auditLog({
       event_type: 'box.update',
@@ -165,11 +169,13 @@ router.put('/:uid', requirePermission('box.update'), async (req: AuthRequest, re
   } catch (e) { next(e); }
 });
 
-router.delete('/:uid', requirePermission('box.delete'), async (req: AuthRequest, res, next) => {
+router.delete('/:uid', requirePermission('box.delete'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`DELETE FROM boxes WHERE uid = $1 AND status = 'packed' RETURNING uid`,
       [req.params.uid]);
     if (!r.rowCount) throw Conflict("Faqat 'packed' statusdagi boxni o'chirish mumkin");
+
+    syncBoxDelete(req.params.uid, req.user!.id).catch(console.error);
 
     await auditLog({
       event_type: 'box.delete',

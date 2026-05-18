@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../types';
+import { AuthRequest, JsonValue } from '../types';
 
 export function cookieParser(req: AuthRequest, res: Response, next: NextFunction) {
   const cookies: Record<string, string> = {};
@@ -11,7 +11,7 @@ export function cookieParser(req: AuthRequest, res: Response, next: NextFunction
     const v = decodeURIComponent(p.slice(idx + 1).trim());
     if (k) cookies[k] = v;
   });
-  (req as any).cookies = cookies;
+  req.cookies = cookies;
   next();
 }
 
@@ -20,7 +20,7 @@ export function securityHeaders(isProd: boolean) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self)');
     res.setHeader('X-XSS-Protection', '0');
     if (isProd) {
       res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
@@ -85,11 +85,11 @@ export async function auditLog(opts: {
   resource_type?: string;
   resource_id?: string;
   action?: string;
-  before_value?: any;
-  after_value?: any;
+  before_value?: JsonValue;
+  after_value?: JsonValue;
   ip_address?: string;
   user_agent?: string;
-  metadata?: any;
+  metadata?: JsonValue;
 }) {
   try {
     await pool.query(`

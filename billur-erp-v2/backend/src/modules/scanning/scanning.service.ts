@@ -35,6 +35,20 @@ export interface ScanRequest {
   notes?: string;
 }
 
+interface ProductionQrRow {
+  id: string;
+  qr_code: string;
+  current_stage: string;
+  current_worker_id: string | null;
+  status: string;
+}
+
+interface WorkerRow {
+  id: string;
+  full_name: string;
+  default_stage: string | null;
+}
+
 export interface ScanResult {
   ok: true;
   qr_code_id: string;
@@ -51,7 +65,7 @@ export interface ScanResult {
 // Stage workflow order — used to advance after FINISH
 const STAGE_ORDER = [
   'cutting', 'printing', 'sewing', 'quality',
-  'ironing', 'tagging', 'packing', 'boxing', 'shipped',
+  'ironing', 'packing', 'boxing', 'finished', 'shipped',
 ];
 
 function nextStage(current: string): string | null {
@@ -64,7 +78,7 @@ function nextStage(current: string): string | null {
 // Used for anti-cheating — anything faster is flagged.
 const MIN_SECONDS_BY_STAGE: Record<string, number> = {
   cutting: 30, printing: 20, sewing: 60, quality: 10,
-  ironing: 15, tagging: 5, packing: 20,
+  ironing: 15, packing: 20, boxing: 10,
 };
 
 /** Validates and records a scan in a serializable transaction. */
@@ -84,7 +98,7 @@ export async function recordScan(req: ScanRequest): Promise<ScanResult> {
       [qr_code]
     );
     if (!qrRes.rows.length) throw NotFound('QR code topilmadi');
-    const qr = qrRes.rows[0];
+    const qr = qrRes.rows[0] as ProductionQrRow;
 
     // Ensure the QR is at this stage
     if (qr.current_stage !== stage) {
@@ -104,7 +118,7 @@ export async function recordScan(req: ScanRequest): Promise<ScanResult> {
       [worker_id]
     );
     if (!wRes.rows.length) throw NotFound('Ishchi topilmadi yoki nofaol');
-    const worker = wRes.rows[0];
+    const worker = wRes.rows[0] as WorkerRow;
 
     // Check if this worker has already FINISHED this stage on this QR
     const doneRes = await client.query(
@@ -126,7 +140,7 @@ export async function recordScan(req: ScanRequest): Promise<ScanResult> {
 }
 
 async function startScan(
-  client: PoolClient, qr: any, worker: any, stage: string, req: ScanRequest
+  client: PoolClient, qr: ProductionQrRow, worker: WorkerRow, stage: string, req: ScanRequest
 ): Promise<ScanResult> {
   // Lock check — is the QR currently locked by ANY worker?
   if (qr.current_worker_id && qr.current_worker_id !== worker.id) {
@@ -180,7 +194,7 @@ async function startScan(
 }
 
 async function finishScan(
-  client: PoolClient, qr: any, worker: any, stage: string, req: ScanRequest
+  client: PoolClient, qr: ProductionQrRow, worker: WorkerRow, stage: string, req: ScanRequest
 ): Promise<ScanResult> {
   // Worker must hold the active START on this (qr, stage)
   const startRes = await client.query(`

@@ -10,7 +10,7 @@
 // The function expects a PoolClient already inside a transaction — the caller
 // controls commit/rollback. Use `withTransaction` from shared/database/pool.
 import { PoolClient } from 'pg';
-import { BadRequest, NotFound, Conflict } from '../../shared/types';
+import { BadRequest, NotFound, Conflict, JsonValue } from '../../shared/types';
 
 // Stages that have a per-item qty column we increment.
 // Other stages (raw, finished, surplus) record an event but don't touch the
@@ -43,7 +43,7 @@ export interface RecordEventOptions {
   device_id?: string | null;
   client_event_uuid?: string | null;   // for idempotency
   notes?: string | null;
-  metadata?: any;
+  metadata?: JsonValue;
 }
 
 export interface RecordEventResult {

@@ -1,17 +1,34 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool, withTransaction } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 import { parseSetCodes, parseSpekaOrder } from './orders.parsers';
 
+interface SetOrderItem {
+  model_id: string;
+  color_id: string;
+  size_id: string;
+  quantity: number;
+  set_numbers: string[];
+  model_code?: string;
+  color_code?: string;
+  size_code?: string;
+}
+
+interface SpekaBlock {
+  model_code: string;
+  color_code: string | null;
+  sizes: Record<string, number>;
+}
+
 const router = Router();
 router.use(requireAuth);
 
-router.get('/', requirePermission('orders.read'), async (req, res, next) => {
+router.get('/', requirePermission('orders.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { client_id, status, type } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [`o.deleted_at IS NULL`];
     if (client_id) { params.push(client_id); conds.push(`o.client_id = $${params.length}`); }
     if (status)    { params.push(status);    conds.push(`o.status = $${params.length}`); }
@@ -30,7 +47,7 @@ router.get('/', requirePermission('orders.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', requirePermission('orders.create'), async (req: AuthRequest, res, next) => {
+router.post('/', requirePermission('orders.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { order_type, external_code, client_id, deadline, notes, priority, items } = req.body || {};
     if (!order_type || !['speka','set','standard'].includes(order_type)) {
@@ -76,7 +93,7 @@ router.post('/', requirePermission('orders.create'), async (req: AuthRequest, re
   }
 });
 
-router.get('/:id', requirePermission('orders.read'), async (req, res, next) => {
+router.get('/:id', requirePermission('orders.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT o.*, c.name AS client_name, c.code AS client_code
@@ -100,7 +117,7 @@ router.get('/:id', requirePermission('orders.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.put('/:id', requirePermission('orders.update'), async (req: AuthRequest, res, next) => {
+router.put('/:id', requirePermission('orders.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { external_code, deadline, notes, priority, status } = req.body || {};
     const r = await pool.query(`
@@ -118,7 +135,7 @@ router.put('/:id', requirePermission('orders.update'), async (req: AuthRequest, 
   } catch (e) { next(e); }
 });
 
-router.delete('/:id', requirePermission('orders.delete'), async (req: AuthRequest, res, next) => {
+router.delete('/:id', requirePermission('orders.delete'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     await pool.query(`UPDATE orders SET deleted_at = NOW() WHERE id = $1`, [req.params.id]);
     await auditLog({
@@ -131,7 +148,7 @@ router.delete('/:id', requirePermission('orders.delete'), async (req: AuthReques
   } catch (e) { next(e); }
 });
 
-router.post('/:id/cancel', requirePermission('orders.cancel'), async (req: AuthRequest, res, next) => {
+router.post('/:id/cancel', requirePermission('orders.cancel'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     await pool.query(`UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE id = $1`,
       [req.params.id]);
@@ -146,7 +163,7 @@ router.post('/:id/cancel', requirePermission('orders.cancel'), async (req: AuthR
 });
 
 // SET parser
-router.post('/set/parse', requirePermission('orders.read'), async (req, res, next) => {
+router.post('/set/parse', requirePermission('orders.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { codes } = req.body || {};
     if (!Array.isArray(codes)) throw BadRequest('codes massivi kerak');
@@ -168,7 +185,7 @@ router.post('/set/parse', requirePermission('orders.read'), async (req, res, nex
 
 // SET → create order from parsed codes
 router.post('/set/create-order', requirePermission('orders.create'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { client_id, codes, deadline, notes } = req.body || {};
     if (!client_id) throw BadRequest('client_id kerak');
@@ -198,7 +215,7 @@ router.post('/set/create-order', requirePermission('orders.create'),
       if (!counts.size) throw BadRequest('Hech qaysi SET kod to\'g\'ri formatda emas');
 
       // Resolve model/color/size IDs
-      const items: any[] = [];
+      const items: SetOrderItem[] = [];
       for (const [, g] of counts) {
         const model = await client.query(`SELECT id FROM models WHERE code = $1`, [g.model_code]);
         const color = await client.query(`SELECT id FROM colors WHERE code = $1 OR name_uz = $1`, [g.color_code]);
@@ -213,6 +230,9 @@ router.post('/set/create-order', requirePermission('orders.create'),
           size_id: size.rows[0].id,
           quantity: g.qty,
           set_numbers: g.set_numbers,
+          model_code: g.model_code,
+          color_code: g.color_code,
+          size_code: g.size_code,
         });
       }
 
@@ -254,7 +274,7 @@ router.post('/set/create-order', requirePermission('orders.create'),
 });
 
 // Speka parser — multi-line text input → array of {model, color, sizes:{XS:5, S:10, ...}}
-router.post('/speka/parse', requirePermission('orders.read'), async (req, res, next) => {
+router.post('/speka/parse', requirePermission('orders.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { text } = req.body || {};
     if (!text || typeof text !== 'string') throw BadRequest('text kerak');
@@ -266,8 +286,8 @@ router.post('/speka/parse', requirePermission('orders.read'), async (req, res, n
     //     L: 15
     //     XL: 8
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    const blocks: any[] = [];
-    let current: any = null;
+    const blocks: SpekaBlock[] = [];
+    let current: SpekaBlock | null = null;
 
     for (const line of lines) {
       const sizeMatch = line.match(/^([XSML0-9]+)\s*[:=]\s*(\d+)$/i);
@@ -297,7 +317,7 @@ router.post('/speka/parse', requirePermission('orders.read'), async (req, res, n
 
 // Speka → create order from parsed blocks
 router.post('/speka/create-order', requirePermission('orders.create'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { client_id, items, deadline, notes } = req.body || {};
     if (!client_id) throw BadRequest('client_id kerak');
@@ -343,7 +363,7 @@ router.post('/speka/create-order', requirePermission('orders.create'),
 });
 
 // ── SET code parser (single or bulk) ─────────────────────────────────────
-router.post('/parse-set', requirePermission('orders.create'), async (req: AuthRequest, res, next) => {
+router.post('/parse-set', requirePermission('orders.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { codes } = req.body || {};
     if (!Array.isArray(codes) || !codes.length) {
@@ -355,7 +375,7 @@ router.post('/parse-set', requirePermission('orders.create'), async (req: AuthRe
 });
 
 // ── Create Speka order from multi-model items + size breakdown ───────────
-router.post('/speka', requirePermission('orders.create'), async (req: AuthRequest, res, next) => {
+router.post('/speka', requirePermission('orders.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { client_id, deadline, priority, speka_number, items, notes } = req.body || {};
     if (!client_id) throw BadRequest('client_id kerak');
@@ -401,7 +421,7 @@ router.post('/speka', requirePermission('orders.create'), async (req: AuthReques
 });
 
 // ── Create order from a batch of SET codes (each SET = 1 item line) ─────
-router.post('/from-sets', requirePermission('orders.create'), async (req: AuthRequest, res, next) => {
+router.post('/from-sets', requirePermission('orders.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { client_id, deadline, priority, codes, notes } = req.body || {};
     if (!client_id) throw BadRequest('client_id kerak');

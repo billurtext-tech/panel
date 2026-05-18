@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound, Forbidden } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound, Forbidden } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 import { uploadDocument, fileUrl } from '../../shared/middleware/upload';
@@ -20,7 +20,7 @@ function canSeeWorker(req: AuthRequest, workerUserId: string | null): boolean {
 }
 
 // ── My profile (current user's worker record) ────────────────────────────
-router.get('/me', async (req: AuthRequest, res, next) => {
+router.get('/me', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       SELECT w.*, ps.name_uz AS default_stage_name
@@ -33,8 +33,67 @@ router.get('/me', async (req: AuthRequest, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── Worker portal stats (today / week / month) ───────────────────────────
+router.get('/me/stats', async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const wid = await workerForUser(req.user!.id);
+    if (!wid) return res.json({ today: 0, week: 0, month: 0, models: [], attendance: null });
+
+    const [today, week, month, models, attendance] = await Promise.all([
+      pool.query(`
+        SELECT COALESCE(SUM(pqr.quantity), 0)::int AS qty, COUNT(*)::int AS scans
+        FROM production_stage_scans pss
+        JOIN production_qr_codes pqr ON pqr.id = pss.qr_code_id
+        WHERE pss.worker_id = $1 AND pss.status = 'finished'
+          AND pss.finish_scan_at >= CURRENT_DATE
+      `, [wid]),
+      pool.query(`
+        SELECT COALESCE(SUM(pqr.quantity), 0)::int AS qty, COUNT(*)::int AS scans
+        FROM production_stage_scans pss
+        JOIN production_qr_codes pqr ON pqr.id = pss.qr_code_id
+        WHERE pss.worker_id = $1 AND pss.status = 'finished'
+          AND pss.finish_scan_at >= date_trunc('week', CURRENT_DATE)
+      `, [wid]),
+      pool.query(`
+        SELECT COALESCE(SUM(pqr.quantity), 0)::int AS qty, COUNT(*)::int AS scans
+        FROM production_stage_scans pss
+        JOIN production_qr_codes pqr ON pqr.id = pss.qr_code_id
+        WHERE pss.worker_id = $1 AND pss.status = 'finished'
+          AND pss.finish_scan_at >= date_trunc('month', CURRENT_DATE)
+      `, [wid]),
+      pool.query(`
+        SELECT m.code AS model_code, m.name AS model_name,
+               COALESCE(SUM(pqr.quantity), 0)::int AS quantity
+        FROM production_stage_scans pss
+        JOIN production_qr_codes pqr ON pqr.id = pss.qr_code_id
+        LEFT JOIN models m ON m.id = pqr.model_id
+        WHERE pss.worker_id = $1 AND pss.status = 'finished'
+          AND pss.finish_scan_at >= date_trunc('month', CURRENT_DATE)
+        GROUP BY m.code, m.name
+        ORDER BY quantity DESC
+        LIMIT 10
+      `, [wid]),
+      pool.query(`
+        SELECT record_type, recorded_at FROM attendance_records
+        WHERE worker_id = $1 ORDER BY recorded_at DESC LIMIT 1
+      `, [wid]),
+    ]);
+
+    res.json({
+      today: today.rows[0],
+      week: week.rows[0],
+      month: month.rows[0],
+      models: models.rows,
+      attendance: {
+        is_checked_in: attendance.rows[0]?.record_type === 'check_in',
+        last_record: attendance.rows[0] || null,
+      },
+    });
+  } catch (e) { next(e); }
+});
+
 // ── My productivity summary (current month) ──────────────────────────────
-router.get('/me/productivity', async (req: AuthRequest, res, next) => {
+router.get('/me/productivity', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const wid = await workerForUser(req.user!.id);
     if (!wid) return res.json({ items: [], total_quantity: 0, total_scans: 0 });
@@ -59,7 +118,7 @@ router.get('/me/productivity', async (req: AuthRequest, res, next) => {
 });
 
 // ── My recent finished scans (last 50) ───────────────────────────────────
-router.get('/me/scans', async (req: AuthRequest, res, next) => {
+router.get('/me/scans', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const wid = await workerForUser(req.user!.id);
     if (!wid) return res.json([]);
@@ -85,7 +144,7 @@ router.get('/me/scans', async (req: AuthRequest, res, next) => {
 });
 
 // ── Get specific worker profile (admin OR self) ──────────────────────────
-router.get('/:id/profile', async (req: AuthRequest, res, next) => {
+router.get('/:id/profile', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       SELECT w.*, ps.name_uz AS default_stage_name,
@@ -103,7 +162,7 @@ router.get('/:id/profile', async (req: AuthRequest, res, next) => {
 });
 
 // ── Update profile fields (admin or self for limited fields) ─────────────
-router.put('/:id/profile', async (req: AuthRequest, res, next) => {
+router.put('/:id/profile', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const sel = await pool.query(`SELECT user_id FROM workers WHERE id = $1`, [req.params.id]);
     if (!sel.rows.length) throw NotFound();
@@ -124,7 +183,7 @@ router.put('/:id/profile', async (req: AuthRequest, res, next) => {
     const allowed = isAdmin ? allowedAdmin : allowedSelf;
 
     const updates: string[] = [];
-    const params: any[] = [];
+    const params: SqlParams = [];
     for (const k of allowed) {
       if (b[k] !== undefined) { params.push(b[k]); updates.push(`${k} = $${params.length}`); }
     }
@@ -148,7 +207,7 @@ router.put('/:id/profile', async (req: AuthRequest, res, next) => {
 });
 
 // ── Documents ────────────────────────────────────────────────────────────
-router.get('/:id/documents', async (req: AuthRequest, res, next) => {
+router.get('/:id/documents', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const sel = await pool.query(`SELECT user_id FROM workers WHERE id = $1`, [req.params.id]);
     if (!sel.rows.length) throw NotFound();
@@ -170,7 +229,7 @@ router.get('/:id/documents', async (req: AuthRequest, res, next) => {
 
 router.post('/:id/documents',
   requirePermission('workers.documents.upload'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { document_type, file_name, file_path, file_size, mime_type,
             issued_date, expiry_date, notes } = req.body || {};
@@ -204,10 +263,13 @@ router.post('/:id/documents',
 // File upload endpoint (multipart/form-data)
 router.post('/:id/documents/upload',
   requirePermission('workers.documents.upload'),
-  (req: AuthRequest, res, next) => {
-    uploadDocument(req as any, res, async (err: any) => {
-      if (err) return next(BadRequest(err.message || 'Upload xato'));
-      const file = (req as any).file;
+  (req: AuthRequest, res: Response, next: NextFunction) => {
+    uploadDocument(req, res, async (err?: unknown) => {
+      if (err) {
+        const message = err instanceof Error ? err.message : 'Upload xato';
+        return next(BadRequest(message));
+      }
+      const file = req.file;
       if (!file) return next(BadRequest('Fayl tanlanmadi'));
 
       try {
@@ -247,7 +309,7 @@ router.post('/:id/documents/upload',
 
 router.delete('/:workerId/documents/:docId',
   requirePermission('workers.documents.view_all'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       DELETE FROM worker_documents WHERE id = $1 AND worker_id = $2 RETURNING *

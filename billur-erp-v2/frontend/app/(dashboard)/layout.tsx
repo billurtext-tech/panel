@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
+import { isWorkerPortalRole } from "@/lib/auth/roles";
 import { Sidebar, TopHeader } from "@/components/sidebar";
 import { Loader2 } from "lucide-react";
 
@@ -15,6 +16,9 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
+    if (!loading && user && isWorkerPortalRole(user.role_id) && user.role_id !== "boxing") {
+      router.replace("/worker");
+    }
   }, [loading, user, router]);
 
   if (loading) {

@@ -5,10 +5,11 @@
 // Files are stored under UPLOAD_DIR (default /tmp/billur-uploads). In production
 // this should be a persistent volume or S3.
 
-import { Router } from 'express';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { Router, Response, NextFunction } from 'express';
+import multer, { type FileFilterCallback } from 'multer';
+import path from 'node:path';
+import fs from 'node:fs';
+import type { Request } from 'express';
 import { pool } from '../../shared/database/pool';
 import { AuthRequest, BadRequest, NotFound, Forbidden } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
@@ -24,13 +25,13 @@ try { fs.mkdirSync(path.join(UPLOAD_DIR, 'quality'), { recursive: true }); } cat
 
 // Multer storage — random filename, preserve extension
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: Request, _file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     const sub = (req.params.kind === 'photo') ? 'photos'
               : (req.params.kind === 'quality') ? 'quality'
               : 'workers';
     cb(null, path.join(UPLOAD_DIR, sub));
   },
-  filename: (req, file, cb) => {
+  filename: (_req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
     const rand = Math.random().toString(36).substring(2, 14);
     const ext = path.extname(file.originalname || '.bin').toLowerCase().substring(0, 8);
     cb(null, `${Date.now()}-${rand}${ext}`);
@@ -45,7 +46,7 @@ const ALLOWED_MIMES = new Set([
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     if (!ALLOWED_MIMES.has(file.mimetype)) {
       cb(new Error(`Fayl turi qabul qilinmaydi: ${file.mimetype}`));
       return;
@@ -62,7 +63,7 @@ router.use(requireAuth);
 router.post('/worker/:workerId/document',
   requirePermission('workers.documents.upload'),
   upload.single('file'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.file) throw BadRequest('Fayl yuborilmadi');
 
@@ -102,7 +103,7 @@ router.post('/worker/:workerId/document',
 // ── Upload worker photo ──────────────────────────────────────────────────
 router.post('/worker/:workerId/photo',
   upload.single('file'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.file) throw BadRequest('Fayl yuborilmadi');
 
@@ -128,7 +129,7 @@ router.post('/worker/:workerId/photo',
 router.post('/quality/photo',
   requirePermission('quality.create'),
   upload.single('file'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.file) throw BadRequest('Fayl yuborilmadi');
     const relPath = path.relative(UPLOAD_DIR, req.file.path);
@@ -142,9 +143,9 @@ router.post('/quality/photo',
 });
 
 // ── Serve uploaded files (with permission check) ─────────────────────────
-router.get('/download/*', async (req: AuthRequest, res, next) => {
+router.get('/download/*',   async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const rel = (req.params as any)[0] as string;
+    const rel = req.params[0] as string;
 
     // Prevent path traversal
     const safeRel = rel.replace(/\.\./g, '').replace(/^\/+/, '');

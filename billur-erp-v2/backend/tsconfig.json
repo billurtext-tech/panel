@@ -13,7 +13,10 @@
     "declaration": false,
     "sourceMap": true,
     "noImplicitAny": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "moduleResolution": "node",
+    "types": ["node"],
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

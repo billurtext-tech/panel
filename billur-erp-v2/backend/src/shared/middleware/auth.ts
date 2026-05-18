@@ -82,6 +82,18 @@ export function requirePermission(...perms: string[]) {
   };
 }
 
+/** User needs at least one of the listed permissions. */
+export function requireAnyPermission(...perms: string[]) {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) throw Unauthorized();
+    const userPerms = new Set(req.user.permissions);
+    if (req.user.role_id === 'owner') return next();
+    const has = perms.some(p => userPerms.has(p));
+    if (!has) throw Forbidden(`Ruxsat yo'q: ${perms.join(' yoki ')}`);
+    next();
+  };
+}
+
 export function requireRole(...roles: string[]) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) throw Unauthorized();

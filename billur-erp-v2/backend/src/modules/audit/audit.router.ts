@@ -1,11 +1,12 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
+import { AuthRequest, SqlParams } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 
 const router = Router();
 router.use(requireAuth);
 
-router.get('/event-types', requirePermission('audit.read'), async (req, res, next) => {
+router.get('/event-types', requirePermission('audit.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT event_type, COUNT(*)::int AS count
@@ -18,10 +19,10 @@ router.get('/event-types', requirePermission('audit.read'), async (req, res, nex
   } catch (e) { next(e); }
 });
 
-router.get('/', requirePermission('audit.read'), async (req, res, next) => {
+router.get('/', requirePermission('audit.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { event_type, user_id, resource_type, resource_id, since, until, limit } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
 
     if (event_type)    { params.push(event_type);    conds.push(`event_type = $${params.length}`); }

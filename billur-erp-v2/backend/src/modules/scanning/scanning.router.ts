@@ -1,10 +1,9 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 import { recordScan, overrideScan } from './scanning.service';
-import { publishEvent } from '../sse/sse.router';
 import { publishEvent } from '../sse/sse.router';
 
 const router = Router();
@@ -13,7 +12,7 @@ router.use(requireAuth);
 // ── Create production QR codes (typically called when an order goes to cutting) ─
 router.post('/qr-codes',
   requirePermission('production.qr.create'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { order_id, order_item_id, model_id, color_id, size_id, quantity, qr_code } = req.body || {};
     if (!order_id || !quantity) throw BadRequest('order_id va quantity kerak');
@@ -50,7 +49,7 @@ router.post('/qr-codes',
 // ── Bulk QR generation for an order (one code per quantity unit OR per item) ──
 router.post('/qr-codes/bulk',
   requirePermission('production.qr.create'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { order_id, mode = 'per_item' } = req.body || {};
     if (!order_id) throw BadRequest('order_id kerak');
@@ -63,7 +62,7 @@ router.post('/qr-codes/bulk',
     const ordRes = await pool.query(`SELECT external_code FROM orders WHERE id = $1`, [order_id]);
     const base = ordRes.rows[0]?.external_code || 'ORD';
 
-    const created: any[] = [];
+    const created: Record<string, unknown>[] = [];
     for (const item of items.rows) {
       const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
       const code = `BILLUR-${base}-${rand}`;
@@ -92,10 +91,10 @@ router.post('/qr-codes/bulk',
 // ── List production QR codes for an order ────────────────────────────────
 router.get('/qr-codes',
   requirePermission('production.qr.create'),
-  async (req, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { order_id, stage, status, q } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
     if (order_id) { params.push(order_id); conds.push(`pqr.order_id = $${params.length}`); }
     if (stage)    { params.push(stage);    conds.push(`pqr.current_stage = $${params.length}`); }
@@ -126,7 +125,7 @@ router.get('/qr-codes',
 // ── Lookup a QR (for the scan UI before sending START/FINISH) ─────────────
 router.get('/qr-codes/:qrCode',
   requirePermission('production.qr.scan'),
-  async (req, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       SELECT pqr.*, o.external_code AS order_code,
@@ -149,7 +148,7 @@ router.get('/qr-codes/:qrCode',
 // ── THE MAIN SCAN ENDPOINT ────────────────────────────────────────────────
 router.post('/scan',
   requirePermission('production.qr.scan'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await recordScan({
       qr_code: req.body?.qr_code,
@@ -196,7 +195,7 @@ router.post('/scan',
 // ── Override (admin force-release lock) ───────────────────────────────────
 router.post('/qr-codes/:id/override',
   requirePermission('production.qr.override'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { reason } = req.body || {};
     if (!reason || reason.length < 5) throw BadRequest("'reason' kerak (kamida 5 belgi)");
@@ -220,7 +219,7 @@ router.post('/qr-codes/:id/override',
 // ── Scan history for a single QR code (Traceability) ─────────────────────
 router.get('/qr-codes/:id/trace',
   requirePermission('production.trace.view'),
-  async (req, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const qr = await pool.query(`
       SELECT pqr.*, o.external_code AS order_code, o.order_type, o.client_id,
@@ -268,20 +267,34 @@ router.get('/qr-codes/:id/trace',
 // ── Trace by external box number (mahsulot qaysi boxdan kelgan) ──────────
 router.get('/trace/by-box/:boxUid',
   requirePermission('production.trace.view'),
-  async (req, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     // boxes can hold multiple items; we return all QR codes that are in this box
     const box = await pool.query(`SELECT * FROM boxes WHERE uid = $1`, [req.params.boxUid]);
     if (!box.rows.length) throw NotFound();
-    // For now: return box meta. (Linking boxes to QR codes is in Stage C / BoxApp sync.)
-    res.json({ box: box.rows[0], qr_codes: [] });
+
+    const scans = await pool.query(`
+      SELECT bse.*, bse.size_code, w.full_name AS worker_name
+      FROM box_scan_events bse
+      LEFT JOIN workers w ON w.id = bse.worker_id
+      WHERE bse.box_uid = $1 AND bse.result = 'ok'
+      ORDER BY bse.scanned_at DESC
+    `, [req.params.boxUid]);
+
+    const qrCodes = box.rows[0].order_id ? (await pool.query(`
+      SELECT pqr.* FROM production_qr_codes pqr
+      WHERE pqr.order_id = $1
+      ORDER BY pqr.created_at DESC LIMIT 100
+    `, [box.rows[0].order_id])).rows : [];
+
+    res.json({ box: box.rows[0], pack_scans: scans.rows, qr_codes: qrCodes });
   } catch (e) { next(e); }
 });
 
 // ── List suspicious scans (admin) ────────────────────────────────────────
 router.get('/scans/suspicious',
   requirePermission('production.qr.override'),
-  async (req, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT pss.*, w.full_name AS worker_name, w.employee_code,
@@ -301,10 +314,10 @@ router.get('/scans/suspicious',
 // ── Current open scans per worker (for "what am I working on?") ──────────
 router.get('/scans/active',
   requirePermission('production.qr.scan'),
-  async (req, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { worker_id } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     let where = `WHERE pss.status = 'started'`;
     if (worker_id) { params.push(worker_id); where += ` AND pss.worker_id = $${params.length}`; }
 

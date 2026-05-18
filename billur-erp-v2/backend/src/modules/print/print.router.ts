@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 
@@ -9,10 +9,10 @@ router.use(requireAuth);
 
 const VALID_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'];
 
-router.get('/', requirePermission('print.read'), async (req, res, next) => {
+router.get('/', requirePermission('print.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, client_id, order_id } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
     if (status)    { params.push(status);    conds.push(`pj.status = $${params.length}`); }
     if (client_id) { params.push(client_id); conds.push(`pj.client_id = $${params.length}`); }
@@ -34,7 +34,7 @@ router.get('/', requirePermission('print.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', requirePermission('print.create'), async (req: AuthRequest, res, next) => {
+router.post('/', requirePermission('print.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { client_id, order_id, print_type, design_url, qty, unit_price_uzs, deadline, operator_id, notes } = req.body || {};
     if (!Number.isInteger(qty) || qty < 1) throw BadRequest("qty 1 dan katta bo'lishi kerak");
@@ -60,7 +60,7 @@ router.post('/', requirePermission('print.create'), async (req: AuthRequest, res
   } catch (e) { next(e); }
 });
 
-router.get('/:id', requirePermission('print.read'), async (req, res, next) => {
+router.get('/:id', requirePermission('print.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT pj.*, c.name AS client_name, c.code AS client_code,
@@ -75,7 +75,7 @@ router.get('/:id', requirePermission('print.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.put('/:id', requirePermission('print.update'), async (req: AuthRequest, res, next) => {
+router.put('/:id', requirePermission('print.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { printed_qty, rejected_qty, status, notes, operator_id } = req.body || {};
     if (status && !VALID_STATUSES.includes(status)) {

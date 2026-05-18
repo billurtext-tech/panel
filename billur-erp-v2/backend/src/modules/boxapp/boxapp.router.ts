@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 import { processJob, processQueue } from './boxapp.service';
@@ -9,10 +9,10 @@ const router = Router();
 router.use(requireAuth);
 
 // ── Sync job queue inspection ────────────────────────────────────────────
-router.get('/jobs', requirePermission('boxapp.view'), async (req, res, next) => {
+router.get('/jobs', requirePermission('boxapp.view'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, entity_type, limit = '100' } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
     if (status) { params.push(status); conds.push(`sync_status = $${params.length}`); }
     if (entity_type) { params.push(entity_type); conds.push(`entity_type = $${params.length}`); }
@@ -28,7 +28,7 @@ router.get('/jobs', requirePermission('boxapp.view'), async (req, res, next) => 
   } catch (e) { next(e); }
 });
 
-router.get('/jobs/_stats', requirePermission('boxapp.view'), async (req, res, next) => {
+router.get('/jobs/_stats', requirePermission('boxapp.view'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT sync_status, COUNT(*)::int AS count
@@ -42,7 +42,7 @@ router.get('/jobs/_stats', requirePermission('boxapp.view'), async (req, res, ne
 // ── Manual retry of a single job ─────────────────────────────────────────
 router.post('/jobs/:id/retry',
   requirePermission('boxapp.retry'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     // Reset to pending immediately so it gets picked up
     await pool.query(`
@@ -65,7 +65,7 @@ router.post('/jobs/:id/retry',
 // ── Manual flush (process queue now) ─────────────────────────────────────
 router.post('/jobs/_flush',
   requirePermission('boxapp.sync'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await processQueue(50);
     await auditLog({
@@ -81,7 +81,7 @@ router.post('/jobs/_flush',
 // ── Cancel a stuck job ──────────────────────────────────────────────────
 router.post('/jobs/:id/cancel',
   requirePermission('boxapp.retry'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       UPDATE boxapp_sync_jobs SET sync_status = 'cancelled' WHERE id = $1

@@ -6,7 +6,8 @@ services:
     plan: starter
     region: frankfurt
     rootDir: backend
-    buildCommand: npm install && npm run build && npm run migrate
+    # migrate: production'da tsx yo'q — build dan keyin compiled JS
+    buildCommand: npm install && npm run build && node dist/shared/database/migrate.js
     startCommand: npm start
     healthCheckPath: /health
     disk:
@@ -14,6 +15,8 @@ services:
       mountPath: /var/data/uploads
       sizeGB: 1
     envVars:
+      - key: NODE_VERSION
+        value: "20.18.1"
       - key: NODE_ENV
         value: production
       - key: ALLOWED_ORIGINS
@@ -44,6 +47,8 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
+      - key: NODE_VERSION
+        value: "20.18.1"
       - key: NODE_ENV
         value: production
       - key: BACKEND_URL

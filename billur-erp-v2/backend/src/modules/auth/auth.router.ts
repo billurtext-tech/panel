@@ -136,7 +136,7 @@ router.post('/login', rateLimit(10, 15 * 60 * 1000), async (req: AuthRequest, re
 });
 
 router.post('/logout', async (req: AuthRequest, res: Response) => {
-  const token = (req as any).cookies?.token || (req.headers['x-session-token'] as string);
+  const token = req.cookies?.token || (req.headers['x-session-token'] as string);
   if (token) {
     await pool.query(`DELETE FROM sessions WHERE token = $1`, [token]);
   }
@@ -164,7 +164,7 @@ router.post('/me/password', requireAuth, async (req: AuthRequest, res: Response,
       throw Unauthorized('Eski parol noto\'g\'ri');
     }
     const newHash = await hashPassword(newPassword);
-    const currentToken = (req as any).cookies?.token || (req.headers['x-session-token'] as string);
+    const currentToken = req.cookies?.token || (req.headers['x-session-token'] as string);
     await pool.query(`UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
       [newHash, req.user!.id]);
     // Boshqa qurilmalardagi sessionlarni yopish

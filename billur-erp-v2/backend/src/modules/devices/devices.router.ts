@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
 import { AuthRequest, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
@@ -7,7 +7,7 @@ import { auditLog, clientIp } from '../../shared/middleware/security';
 const router = Router();
 router.use(requireAuth);
 
-router.get('/', requirePermission('settings.manage'), async (req, res, next) => {
+router.get('/', requirePermission('settings.manage'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT d.*, ps.name_uz AS stage_name, u.full_name AS approved_by_name
@@ -20,7 +20,7 @@ router.get('/', requirePermission('settings.manage'), async (req, res, next) => 
   } catch (e) { next(e); }
 });
 
-router.post('/register', async (req: AuthRequest, res, next) => {
+router.post('/register', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id, name, type, fingerprint } = req.body || {};
     if (!id) throw BadRequest('id kerak');
@@ -39,7 +39,7 @@ router.post('/register', async (req: AuthRequest, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/:id/approve', requirePermission('settings.manage'), async (req: AuthRequest, res, next) => {
+router.post('/:id/approve', requirePermission('settings.manage'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { assigned_stage } = req.body || {};
     const r = await pool.query(`
@@ -62,7 +62,7 @@ router.post('/:id/approve', requirePermission('settings.manage'), async (req: Au
   } catch (e) { next(e); }
 });
 
-router.post('/:id/revoke', requirePermission('settings.manage'), async (req: AuthRequest, res, next) => {
+router.post('/:id/revoke', requirePermission('settings.manage'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       UPDATE devices SET is_approved = false WHERE id = $1 RETURNING id

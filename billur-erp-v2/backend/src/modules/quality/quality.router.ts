@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool, withTransaction } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound, Conflict } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 
@@ -9,10 +9,10 @@ router.use(requireAuth);
 
 const VALID_DEFECT_SEVERITIES = ['minor', 'major', 'critical'];
 
-router.get('/', requirePermission('quality.read'), async (req, res, next) => {
+router.get('/', requirePermission('quality.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { order_id, order_item_id, stage, since, limit } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
 
     if (order_id)      { params.push(order_id);      conds.push(`oi.order_id = $${params.length}`); }
@@ -50,10 +50,10 @@ router.get('/', requirePermission('quality.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.get('/discrepancies', requirePermission('quality.read'), async (req, res, next) => {
+router.get('/discrepancies', requirePermission('quality.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
     if (status) { params.push(status); conds.push(`d.status = $${params.length}`); }
     else conds.push(`d.status = 'open'`);
@@ -82,7 +82,7 @@ router.get('/discrepancies', requirePermission('quality.read'), async (req, res,
 
 router.post('/discrepancies/:id/resolve',
   requirePermission('quality.update'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { resolution, resolution_notes } = req.body || {};
     const validResolutions = ['confirmed_count', 'data_entry_error', 'lost', 'found_later', 'other'];
@@ -130,10 +130,10 @@ router.post('/discrepancies/:id/resolve',
   } catch (e) { next(e); }
 });
 
-router.get('/defects/summary', requirePermission('quality.read'), async (req, res, next) => {
+router.get('/defects/summary', requirePermission('quality.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { since } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     let whereSql = '';
     if (since) { params.push(since); whereSql = `WHERE qc.created_at >= $${params.length}`; }
 
@@ -153,7 +153,7 @@ router.get('/defects/summary', requirePermission('quality.read'), async (req, re
   } catch (e) { next(e); }
 });
 
-router.get('/:id', requirePermission('quality.read'), async (req, res, next) => {
+router.get('/:id', requirePermission('quality.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const qc = await pool.query(`
       SELECT qc.*, ps.name_uz AS stage_name,
@@ -180,7 +180,7 @@ router.get('/:id', requirePermission('quality.read'), async (req, res, next) => 
   } catch (e) { next(e); }
 });
 
-router.post('/', requirePermission('quality.create'), async (req: AuthRequest, res, next) => {
+router.post('/', requirePermission('quality.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const {
       order_item_id, stage, checked_qty, passed_qty,

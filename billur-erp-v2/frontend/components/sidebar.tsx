@@ -27,7 +27,8 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { title: "Dashboard",         icon: LayoutDashboard, href: "/",            group: "Asosiy" },
+  { title: "Dashboard",         icon: LayoutDashboard, href: "/",            perm: "orders.read", group: "Asosiy" },
+  { title: "BoxUI",             icon: Package,         href: "/boxui",       perm: "boxapp.orders.read", group: "Asosiy" },
   { title: "Klientlar",         icon: Building2,       href: "/clients",     perm: "clients.read",    group: "Asosiy" },
   { title: "Zakazlar",          icon: ShoppingCart,    href: "/orders",      perm: "orders.read",     group: "Asosiy" },
 

@@ -1,13 +1,13 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound, Conflict } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 
 const router = Router();
 router.use(requireAuth);
 
 // MODELS
-router.get('/models', async (req, res, next) => {
+router.get('/models', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT m.*, c.name AS client_name
@@ -20,7 +20,7 @@ router.get('/models', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/models', requirePermission('clients.update'), async (req: AuthRequest, res, next) => {
+router.post('/models', requirePermission('clients.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { code, name, description, client_id, product_type, has_top_bottom } = req.body || {};
     if (!code || !name) throw BadRequest('Kod va nom kerak');
@@ -34,7 +34,7 @@ router.post('/models', requirePermission('clients.update'), async (req: AuthRequ
   } catch (e) { next(e); }
 });
 
-router.put('/models/:id', requirePermission('clients.update'), async (req: AuthRequest, res, next) => {
+router.put('/models/:id', requirePermission('clients.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { name, description, client_id, product_type, has_top_bottom, is_active } = req.body || {};
     const r = await pool.query(`
@@ -52,7 +52,7 @@ router.put('/models/:id', requirePermission('clients.update'), async (req: AuthR
   } catch (e) { next(e); }
 });
 
-router.delete('/models/:id', requirePermission('clients.delete'), async (req, res, next) => {
+router.delete('/models/:id', requirePermission('clients.delete'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     await pool.query(`UPDATE models SET deleted_at = NOW() WHERE id = $1`, [req.params.id]);
     res.json({ ok: true });
@@ -60,14 +60,14 @@ router.delete('/models/:id', requirePermission('clients.delete'), async (req, re
 });
 
 // COLORS
-router.get('/colors', async (req, res, next) => {
+router.get('/colors', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`SELECT * FROM colors WHERE is_active ORDER BY name_uz`);
     res.json(rows);
   } catch (e) { next(e); }
 });
 
-router.post('/colors', requirePermission('clients.update'), async (req, res, next) => {
+router.post('/colors', requirePermission('clients.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { code, name_uz, hex } = req.body || {};
     if (!code || !name_uz) throw BadRequest('Kod va nom kerak');
@@ -82,10 +82,10 @@ router.post('/colors', requirePermission('clients.update'), async (req, res, nex
 });
 
 // SIZES
-router.get('/sizes', async (req, res, next) => {
+router.get('/sizes', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { category } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     let q = `SELECT * FROM sizes`;
     if (category) {
       params.push(category);
@@ -97,7 +97,7 @@ router.get('/sizes', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/sizes', requirePermission('clients.update'), async (req, res, next) => {
+router.post('/sizes', requirePermission('clients.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { code, category, sort_order } = req.body || {};
     if (!code) throw BadRequest('Kod kerak');
@@ -112,7 +112,7 @@ router.post('/sizes', requirePermission('clients.update'), async (req, res, next
 });
 
 // PRODUCTION STAGES (read-only)
-router.get('/stages', async (req, res, next) => {
+router.get('/stages', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(
       `SELECT * FROM production_stages WHERE is_active ORDER BY sort_order`
@@ -122,7 +122,7 @@ router.get('/stages', async (req, res, next) => {
 });
 
 // WAREHOUSES (read-only)
-router.get('/warehouses', async (req, res, next) => {
+router.get('/warehouses', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(
       `SELECT * FROM warehouses WHERE is_active ORDER BY name_uz`

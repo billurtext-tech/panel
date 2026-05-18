@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
+import { getDefaultRoute } from "@/lib/auth/roles";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,7 @@ import { Loader2, Building2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,8 +24,8 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(username, password);
-      router.push("/");
+      const loggedIn = await login(username, password);
+      router.push(getDefaultRoute(loggedIn.role_id));
     } catch (err: any) {
       setError(err.message || "Kirish xatosi");
     } finally {

@@ -1,18 +1,18 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import ExcelJS from 'exceljs';
 import { pool } from '../../shared/database/pool';
-import { AuthRequest } from '../../shared/types';
+import { AuthRequest, SqlParams } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 
 const router = Router();
 router.use(requireAuth);
 
-router.get('/worker-performance', requirePermission('reports.read'), async (req, res, next) => {
+router.get('/worker-performance', requirePermission('reports.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const since = req.query.since as string | undefined;
     const until = req.query.until as string | undefined;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
     if (since) { params.push(since); conds.push(`pe.occurred_at >= $${params.length}`); }
     if (until) { params.push(until); conds.push(`pe.occurred_at <= $${params.length}`); }
@@ -36,7 +36,7 @@ router.get('/worker-performance', requirePermission('reports.read'), async (req,
   } catch (e) { next(e); }
 });
 
-router.get('/clients-summary', requirePermission('reports.read'), async (req, res, next) => {
+router.get('/clients-summary', requirePermission('reports.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT c.id, c.code, c.name, c.balance_uzs,
@@ -55,11 +55,11 @@ router.get('/clients-summary', requirePermission('reports.read'), async (req, re
   } catch (e) { next(e); }
 });
 
-router.get('/daily-production', requirePermission('reports.read'), async (req, res, next) => {
+router.get('/daily-production', requirePermission('reports.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const since = req.query.since as string | undefined;
     const until = req.query.until as string | undefined;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
     if (since) { params.push(since); conds.push(`pe.occurred_at >= $${params.length}`); }
     if (until) { params.push(until); conds.push(`pe.occurred_at <= $${params.length}`); }
@@ -81,7 +81,7 @@ router.get('/daily-production', requirePermission('reports.read'), async (req, r
   } catch (e) { next(e); }
 });
 
-router.get('/export/orders', requirePermission('reports.export'), async (req: AuthRequest, res, next) => {
+router.get('/export/orders', requirePermission('reports.export'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT o.external_code, o.order_type, o.status,
@@ -130,11 +130,11 @@ router.get('/export/orders', requirePermission('reports.export'), async (req: Au
   } catch (e) { next(e); }
 });
 
-router.get('/export/production', requirePermission('reports.export'), async (req: AuthRequest, res, next) => {
+router.get('/export/production', requirePermission('reports.export'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const since = req.query.since as string | undefined;
     const until = req.query.until as string | undefined;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
     if (since) { params.push(since); conds.push(`pe.occurred_at >= $${params.length}`); }
     if (until) { params.push(until); conds.push(`pe.occurred_at <= $${params.length}`); }
@@ -192,10 +192,10 @@ router.get('/export/production', requirePermission('reports.export'), async (req
   } catch (e) { next(e); }
 });
 
-router.get('/export/workers', requirePermission('reports.export'), async (req: AuthRequest, res, next) => {
+router.get('/export/workers', requirePermission('reports.export'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const since = req.query.since as string | undefined;
-    const params: any[] = [];
+    const params: SqlParams = [];
     let whereSql = '';
     if (since) { params.push(since); whereSql = `WHERE pe.occurred_at >= $${params.length}`; }
 
@@ -248,7 +248,7 @@ router.get('/export/workers', requirePermission('reports.export'), async (req: A
 
 // Payroll Excel export
 router.get('/export/payroll', requirePermission('reports.export'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const periodStart = req.query.period_start as string | undefined;
     const periodEnd   = req.query.period_end   as string | undefined;
@@ -335,11 +335,11 @@ router.get('/export/payroll', requirePermission('reports.export'),
 
 // Quality defects export
 router.get('/export/quality', requirePermission('reports.export'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const since = req.query.since as string | undefined;
     const until = req.query.until as string | undefined;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
     if (since) { params.push(since); conds.push(`qd.created_at >= $${params.length}::date`); }
     if (until) { params.push(until); conds.push(`qd.created_at < ($${params.length}::date + INTERVAL '1 day')`); }

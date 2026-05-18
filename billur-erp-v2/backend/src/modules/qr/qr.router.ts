@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import QRCode from 'qrcode';
 import { pool, withTransaction } from '../../shared/database/pool';
 import { generateQrToken, validateQrToken } from '../../shared/utils/crypto';
-import { AuthRequest, BadRequest, NotFound, Forbidden } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound, Forbidden } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp, rateLimit } from '../../shared/middleware/security';
 import { recordProductionEvent } from '../production/production.events';
@@ -16,7 +16,7 @@ const DUPLICATE_WINDOW_SECONDS = 10;
 // ── Generate / regenerate a worker's QR token ──────────────────────────────
 router.post('/generate/:workerId',
   requirePermission('qr.generate'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const w = await pool.query(
       `SELECT id, full_name, employee_code FROM workers
@@ -71,7 +71,7 @@ router.post('/generate/:workerId',
 // ── Get active token for worker (for re-printing without regenerating) ────
 router.get('/worker/:workerId/active',
   requirePermission('qr.generate'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       SELECT t.token, t.expires_at, t.created_at,
@@ -106,7 +106,7 @@ router.get('/worker/:workerId/active',
 // ── Get raw QR PNG for direct download/printing ───────────────────────────
 router.get('/worker/:workerId/png',
   requirePermission('qr.generate'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
       SELECT token FROM worker_qr_tokens
@@ -131,7 +131,7 @@ router.get('/worker/:workerId/png',
 router.post('/lookup',
   rateLimit(60, 60_000),
   requirePermission('qr.scan'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { token } = req.body || {};
     if (!token || typeof token !== 'string') throw BadRequest('Token kerak');
@@ -176,7 +176,7 @@ router.post('/lookup',
 router.post('/scan',
   rateLimit(120, 60_000),
   requirePermission('qr.scan'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { token, stage, order_item_id, qty, scan_type, device_id, client_event_uuid } = req.body || {};
     if (!token || typeof token !== 'string') throw BadRequest('Token kerak');
@@ -311,10 +311,10 @@ router.post('/scan',
 });
 
 // ── List scans ─────────────────────────────────────────────────────────────
-router.get('/scans', requirePermission('qr.scan'), async (req, res, next) => {
+router.get('/scans', requirePermission('qr.scan'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { worker_id, stage, suspicious, since } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [];
 
     if (worker_id) { params.push(worker_id); conds.push(`s.worker_id = $${params.length}`); }
@@ -347,7 +347,7 @@ router.get('/scans', requirePermission('qr.scan'), async (req, res, next) => {
 // ── Approve a suspicious scan — also commits the deferred event ────────────
 router.post('/scans/:id/approve',
   requirePermission('qr.approve'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await withTransaction(async (client) => {
       const scn = await client.query(

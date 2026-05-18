@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
-import { AuthRequest, BadRequest, NotFound, Conflict } from '../../shared/types';
+import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 
@@ -12,10 +12,10 @@ const VALID_POSITIONS = [
   'ironing', 'packing', 'boxing', 'warehouse', 'other'
 ];
 
-router.get('/', requirePermission('workers.read'), async (req, res, next) => {
+router.get('/', requirePermission('workers.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { stage, position, active } = req.query;
-    const params: any[] = [];
+    const params: SqlParams = [];
     const conds: string[] = [`w.deleted_at IS NULL`];
 
     if (stage)    { params.push(stage);    conds.push(`w.default_stage = $${params.length}`); }
@@ -40,7 +40,7 @@ router.get('/', requirePermission('workers.read'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', requirePermission('workers.create'), async (req: AuthRequest, res, next) => {
+router.post('/', requirePermission('workers.create'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { employee_code, full_name, phone, position, default_stage,
             hire_date, photo_url, notes } = req.body || {};
@@ -79,7 +79,7 @@ router.post('/', requirePermission('workers.create'), async (req: AuthRequest, r
   } catch (e) { next(e); }
 });
 
-router.get('/:id', requirePermission('workers.read'), async (req, res, next) => {
+router.get('/:id', requirePermission('workers.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT w.*, ps.name_uz AS default_stage_name
@@ -92,7 +92,7 @@ router.get('/:id', requirePermission('workers.read'), async (req, res, next) => 
   } catch (e) { next(e); }
 });
 
-router.put('/:id', requirePermission('workers.update'), async (req: AuthRequest, res, next) => {
+router.put('/:id', requirePermission('workers.update'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { full_name, phone, position, default_stage,
             hire_date, photo_url, notes, is_active } = req.body || {};
@@ -134,7 +134,7 @@ router.put('/:id', requirePermission('workers.update'), async (req: AuthRequest,
   } catch (e) { next(e); }
 });
 
-router.delete('/:id', requirePermission('workers.delete'), async (req: AuthRequest, res, next) => {
+router.delete('/:id', requirePermission('workers.delete'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const sel = await pool.query(`SELECT 1 FROM workers WHERE id = $1 AND deleted_at IS NULL`,
       [req.params.id]);
@@ -163,7 +163,7 @@ router.delete('/:id', requirePermission('workers.delete'), async (req: AuthReque
 });
 
 // Worker's recent scans — for the detail panel
-router.get('/:id/scans', requirePermission('workers.read'), async (req, res, next) => {
+router.get('/:id/scans', requirePermission('workers.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const limit = Math.min(parseInt(String(req.query.limit || '50'), 10) || 50, 200);
     const { rows } = await pool.query(`
@@ -184,7 +184,7 @@ router.get('/:id/scans', requirePermission('workers.read'), async (req, res, nex
 });
 
 // Active QR token info (no token text — only metadata)
-router.get('/:id/qr', requirePermission('workers.read'), async (req, res, next) => {
+router.get('/:id/qr', requirePermission('workers.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
       SELECT issued_at, expires_at, is_active

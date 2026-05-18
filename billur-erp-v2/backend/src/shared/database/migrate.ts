@@ -1,6 +1,6 @@
 // Migration runner — migrations/ papkasidagi .sql fayllarni tartib bilan ishga tushiradi
-import { readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { pool } from './pool';
 import { hashPassword } from '../utils/crypto';
 
@@ -18,7 +18,7 @@ async function ensureMigrationsTable() {
 
 async function appliedMigrations(): Promise<Set<string>> {
   const { rows } = await pool.query(`SELECT filename FROM migrations`);
-  return new Set(rows.map(r => r.filename));
+  return new Set(rows.map((r: { filename: string }) => r.filename));
 }
 
 async function runMigration(filename: string) {
@@ -74,7 +74,7 @@ async function main() {
   await pool.end();
 }
 
-main().catch(e => {
+main().catch((e: unknown) => {
   console.error('❌ Migration error:', e);
   process.exit(1);
 });
