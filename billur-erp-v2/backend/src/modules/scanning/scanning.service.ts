@@ -41,6 +41,7 @@ interface ProductionQrRow {
   current_stage: string;
   current_worker_id: string | null;
   status: string;
+  quantity?: number;
 }
 
 interface WorkerRow {

@@ -22,7 +22,7 @@ router.get('/stream', requireAuth, (req: AuthRequest, res) => {
   const sub: Subscriber = { res, userId: req.user!.id, lastPing: Date.now() };
   subscribers.add(sub);
 
-  res.write(`event: hello\ndata: ${JSON.stringify({ ok: true, time: new Date() })}\n\n`);
+  res.write(`event: hello\ndata: ${JSON.stringify({ ok: true, time: new Date().toISOString() })}\n\n`);
 
   const pingInterval = setInterval(() => {
     try { res.write(`: ping\n\n`); sub.lastPing = Date.now(); }

@@ -3,6 +3,7 @@ import { pool, withTransaction } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString, getQueryString } from '../../shared/utils/query';
 import { recordProductionEvent, STAGE_QTY_COLUMN } from './production.events';
 
 const router = Router();
@@ -42,7 +43,7 @@ router.post('/events',
           event_id: result.event_id,
           to_stage: result.to_stage,
           qty: result.qty_after !== null ? result.qty_after : qty,
-          discrepancy_id: result.discrepancy_id,
+          discrepancy_id: result.discrepancy_id ?? null,
         },
         ip_address: clientIp(req)
       });
@@ -55,7 +56,11 @@ router.post('/events',
 // ── GET /api/production/events — recent events feed ────────────────────────
 router.get('/events', requirePermission('production.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { order_id, order_item_id, worker_id, stage, since, limit } = req.query;
+    const order_id = getOptionalQueryString(req.query.order_id);
+    const order_item_id = getOptionalQueryString(req.query.order_item_id);
+    const worker_id = getOptionalQueryString(req.query.worker_id);
+    const stage = getOptionalQueryString(req.query.stage);
+    const since = getOptionalQueryString(req.query.since);
     const params: SqlParams = [];
     const conds: string[] = [];
 
@@ -66,7 +71,7 @@ router.get('/events', requirePermission('production.read'), async (req: AuthRequ
     if (since)         { params.push(since);         conds.push(`pe.occurred_at >= $${params.length}`); }
 
     const whereSql = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
-    const lim = Math.min(parseInt(String(limit || '100'), 10) || 100, 500);
+    const lim = Math.min(parseInt(getQueryString(req.query.limit) || '100', 10) || 100, 500);
 
     const { rows } = await pool.query(`
       SELECT pe.id, pe.event_type, pe.qty, pe.occurred_at,

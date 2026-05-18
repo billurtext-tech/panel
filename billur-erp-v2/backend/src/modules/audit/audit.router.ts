@@ -2,6 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
 import { AuthRequest, SqlParams } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
+import { getOptionalQueryString, getQueryString } from '../../shared/utils/query';
 
 const router = Router();
 router.use(requireAuth);
@@ -21,7 +22,12 @@ router.get('/event-types', requirePermission('audit.read'), async (req: AuthRequ
 
 router.get('/', requirePermission('audit.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { event_type, user_id, resource_type, resource_id, since, until, limit } = req.query;
+    const event_type = getOptionalQueryString(req.query.event_type);
+    const user_id = getOptionalQueryString(req.query.user_id);
+    const resource_type = getOptionalQueryString(req.query.resource_type);
+    const resource_id = getOptionalQueryString(req.query.resource_id);
+    const since = getOptionalQueryString(req.query.since);
+    const until = getOptionalQueryString(req.query.until);
     const params: SqlParams = [];
     const conds: string[] = [];
 
@@ -33,7 +39,7 @@ router.get('/', requirePermission('audit.read'), async (req: AuthRequest, res: R
     if (until)         { params.push(until);         conds.push(`at <= $${params.length}`); }
 
     const whereSql = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
-    const lim = Math.min(parseInt(String(limit || '200'), 10) || 200, 1000);
+    const lim = Math.min(parseInt(getQueryString(req.query.limit) || '200', 10) || 200, 1000);
 
     const { rows } = await pool.query(`
       SELECT id, event_type, user_id, username, resource_type, resource_id,

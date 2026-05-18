@@ -4,14 +4,15 @@ import { pool } from '../../shared/database/pool';
 import { AuthRequest, SqlParams } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString } from '../../shared/utils/query';
 
 const router = Router();
 router.use(requireAuth);
 
 router.get('/worker-performance', requirePermission('reports.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const since = req.query.since as string | undefined;
-    const until = req.query.until as string | undefined;
+    const since = getOptionalQueryString(req.query.since);
+    const until = getOptionalQueryString(req.query.until);
     const params: SqlParams = [];
     const conds: string[] = [];
     if (since) { params.push(since); conds.push(`pe.occurred_at >= $${params.length}`); }
@@ -57,8 +58,8 @@ router.get('/clients-summary', requirePermission('reports.read'), async (req: Au
 
 router.get('/daily-production', requirePermission('reports.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const since = req.query.since as string | undefined;
-    const until = req.query.until as string | undefined;
+    const since = getOptionalQueryString(req.query.since);
+    const until = getOptionalQueryString(req.query.until);
     const params: SqlParams = [];
     const conds: string[] = [];
     if (since) { params.push(since); conds.push(`pe.occurred_at >= $${params.length}`); }
@@ -132,8 +133,8 @@ router.get('/export/orders', requirePermission('reports.export'), async (req: Au
 
 router.get('/export/production', requirePermission('reports.export'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const since = req.query.since as string | undefined;
-    const until = req.query.until as string | undefined;
+    const since = getOptionalQueryString(req.query.since);
+    const until = getOptionalQueryString(req.query.until);
     const params: SqlParams = [];
     const conds: string[] = [];
     if (since) { params.push(since); conds.push(`pe.occurred_at >= $${params.length}`); }
@@ -181,7 +182,7 @@ router.get('/export/production', requirePermission('reports.export'), async (req
       event_type: 'reports.export',
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'report', resource_id: 'production', action: 'export',
-      metadata: { rows: rows.length, since, until },
+      metadata: { rows: rows.length, since: since ?? null, until: until ?? null },
       ip_address: clientIp(req)
     });
 
@@ -194,7 +195,7 @@ router.get('/export/production', requirePermission('reports.export'), async (req
 
 router.get('/export/workers', requirePermission('reports.export'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const since = req.query.since as string | undefined;
+    const since = getOptionalQueryString(req.query.since);
     const params: SqlParams = [];
     let whereSql = '';
     if (since) { params.push(since); whereSql = `WHERE pe.occurred_at >= $${params.length}`; }
@@ -235,7 +236,7 @@ router.get('/export/workers', requirePermission('reports.export'), async (req: A
       event_type: 'reports.export',
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'report', resource_id: 'workers', action: 'export',
-      metadata: { rows: rows.length, since },
+      metadata: { rows: rows.length, since: since ?? null },
       ip_address: clientIp(req)
     });
 
@@ -250,8 +251,8 @@ router.get('/export/workers', requirePermission('reports.export'), async (req: A
 router.get('/export/payroll', requirePermission('reports.export'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const periodStart = req.query.period_start as string | undefined;
-    const periodEnd   = req.query.period_end   as string | undefined;
+    const periodStart = getOptionalQueryString(req.query.period_start);
+    const periodEnd = getOptionalQueryString(req.query.period_end);
     if (!periodStart || !periodEnd) {
       return res.status(400).json({ error: 'period_start va period_end kerak' });
     }
@@ -321,7 +322,11 @@ router.get('/export/payroll', requirePermission('reports.export'),
       event_type: 'reports.export',
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'report', resource_id: 'payroll', action: 'export',
-      metadata: { rows: rows.length, periodStart, periodEnd },
+      metadata: {
+        rows: rows.length,
+        periodStart: periodStart ?? null,
+        periodEnd: periodEnd ?? null,
+      },
       ip_address: clientIp(req),
     });
 
@@ -337,8 +342,8 @@ router.get('/export/payroll', requirePermission('reports.export'),
 router.get('/export/quality', requirePermission('reports.export'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const since = req.query.since as string | undefined;
-    const until = req.query.until as string | undefined;
+    const since = getOptionalQueryString(req.query.since);
+    const until = getOptionalQueryString(req.query.until);
     const params: SqlParams = [];
     const conds: string[] = [];
     if (since) { params.push(since); conds.push(`qd.created_at >= $${params.length}::date`); }

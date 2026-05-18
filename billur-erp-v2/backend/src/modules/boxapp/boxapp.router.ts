@@ -3,6 +3,7 @@ import { pool } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString, getQueryString } from '../../shared/utils/query';
 import { processJob, processQueue } from './boxapp.service';
 
 const router = Router();
@@ -11,7 +12,8 @@ router.use(requireAuth);
 // ── Sync job queue inspection ────────────────────────────────────────────
 router.get('/jobs', requirePermission('boxapp.view'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { status, entity_type, limit = '100' } = req.query;
+    const status = getOptionalQueryString(req.query.status);
+    const entity_type = getOptionalQueryString(req.query.entity_type);
     const params: SqlParams = [];
     const conds: string[] = [];
     if (status) { params.push(status); conds.push(`sync_status = $${params.length}`); }
@@ -22,7 +24,7 @@ router.get('/jobs', requirePermission('boxapp.view'), async (req: AuthRequest, r
       SELECT * FROM boxapp_sync_jobs
       ${where}
       ORDER BY created_at DESC
-      LIMIT ${Math.min(parseInt(String(limit), 10) || 100, 500)}
+      LIMIT ${Math.min(parseInt(getQueryString(req.query.limit) || '100', 10) || 100, 500)}
     `, params);
     res.json(rows);
   } catch (e) { next(e); }

@@ -2,6 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import { pool } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
+import { getOptionalQueryString } from '../../shared/utils/query';
 
 const router = Router();
 router.use(requireAuth);
@@ -84,7 +85,7 @@ router.post('/colors', requirePermission('clients.update'), async (req: AuthRequ
 // SIZES
 router.get('/sizes', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { category } = req.query;
+    const category = getOptionalQueryString(req.query.category);
     const params: SqlParams = [];
     let q = `SELECT * FROM sizes`;
     if (category) {

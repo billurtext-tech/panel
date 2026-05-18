@@ -3,6 +3,7 @@ import { pool, withTransaction } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString } from '../../shared/utils/query';
 import { parseSetCodes, parseSpekaOrder } from './orders.parsers';
 
 interface SetOrderItem {
@@ -20,6 +21,7 @@ interface SpekaBlock {
   model_code: string;
   color_code: string | null;
   sizes: Record<string, number>;
+  raw_line?: string;
 }
 
 const router = Router();
@@ -27,7 +29,9 @@ router.use(requireAuth);
 
 router.get('/', requirePermission('orders.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { client_id, status, type } = req.query;
+    const client_id = getOptionalQueryString(req.query.client_id);
+    const status = getOptionalQueryString(req.query.status);
+    const type = getOptionalQueryString(req.query.type);
     const params: SqlParams = [];
     const conds: string[] = [`o.deleted_at IS NULL`];
     if (client_id) { params.push(client_id); conds.push(`o.client_id = $${params.length}`); }

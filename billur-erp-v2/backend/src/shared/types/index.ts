@@ -8,10 +8,9 @@ export interface User {
   permissions: string[];
 }
 
-/** Express request with session user and parsed cookies from custom cookieParser. */
+/** Express request with authenticated session user. */
 export interface AuthRequest extends Request {
   user?: User;
-  cookies?: Record<string, string>;
   ip_address?: string;
   device_id?: string;
   file?: Express.Multer.File;
@@ -20,11 +19,14 @@ export interface AuthRequest extends Request {
 export type SqlParam = string | number | boolean | Date | null;
 export type SqlParams = SqlParam[];
 
-export type JsonValue =
+export type JsonPrimitive =
   | string
   | number
   | boolean
-  | null
+  | null;
+
+export type JsonValue =
+  | JsonPrimitive
   | JsonValue[]
   | { [key: string]: JsonValue };
 

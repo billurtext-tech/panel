@@ -7,6 +7,7 @@ import {
   recordAttendance, enrollFace, getAttendanceStatus, getAttendanceHistory,
 } from './attendance.service';
 import { pool } from '../../shared/database/pool';
+import { getOptionalQueryString, getQueryString } from '../../shared/utils/query';
 
 const router = Router();
 router.use(requireAuth);
@@ -72,7 +73,7 @@ router.post('/check-out',
 
 router.get('/status', requirePermission('attendance.view_own', 'attendance.view_all'), async (req: AuthRequest, res, next) => {
   try {
-    const wid = (req.query.worker_id as string) || await workerIdForUser(req.user!.id);
+    const wid = getOptionalQueryString(req.query.worker_id) || await workerIdForUser(req.user!.id);
     if (!wid) return res.json({ is_checked_in: false, last_record: null, today_records: [] });
     if (wid !== await workerIdForUser(req.user!.id) &&
         !req.user!.permissions.includes('attendance.view_all')) {
@@ -84,13 +85,13 @@ router.get('/status', requirePermission('attendance.view_own', 'attendance.view_
 
 router.get('/history', requireAnyPermission('attendance.view_own', 'attendance.view_all'), async (req: AuthRequest, res, next) => {
   try {
-    const wid = (req.query.worker_id as string) || await workerIdForUser(req.user!.id);
+    const wid = getOptionalQueryString(req.query.worker_id) || await workerIdForUser(req.user!.id);
     if (!wid) return res.json([]);
     if (wid !== await workerIdForUser(req.user!.id) &&
         !req.user!.permissions.includes('attendance.view_all')) {
       throw Forbidden();
     }
-    res.json(await getAttendanceHistory(wid, Number(req.query.limit) || 30));
+    res.json(await getAttendanceHistory(wid, Number(getQueryString(req.query.limit)) || 30));
   } catch (e) { next(e); }
 });
 

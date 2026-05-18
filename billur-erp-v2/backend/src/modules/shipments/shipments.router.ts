@@ -3,6 +3,7 @@ import { pool, withTransaction } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString } from '../../shared/utils/query';
 import { syncShipmentCreate, syncShipmentUpdate } from '../boxapp/boxapp.service';
 import type { ShipmentSyncRecord } from '../boxapp/boxapp.types';
 
@@ -11,7 +12,8 @@ router.use(requireAuth);
 
 router.get('/', requirePermission('box.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { status, client_id } = req.query;
+    const status = getOptionalQueryString(req.query.status);
+    const client_id = getOptionalQueryString(req.query.client_id);
     const params: SqlParams = [];
     const conds: string[] = [];
     if (status)    { params.push(status);    conds.push(`s.status = $${params.length}`); }
@@ -93,7 +95,7 @@ router.post('/open/boxes', requirePermission('box.update'), async (req: AuthRequ
       if (action === 'add') {
         if (box.status !== 'warehouse') throw BadRequest("Faqat ombordagi box qo'shiladi");
         if (!boxUids.includes(box.uid)) boxUids.push(box.uid);
-        history.push({ from: 'warehouse', to: 'shipping', at: new Date(), by: req.user!.username });
+        history.push({ from: 'warehouse', to: 'shipping', at: new Date().toISOString(), by: req.user!.username });
         await client.query(
           `UPDATE boxes SET status = 'shipping', status_history = $1, updated_at = NOW() WHERE uid = $2`,
           [JSON.stringify(history), box.uid]
@@ -101,7 +103,7 @@ router.post('/open/boxes', requirePermission('box.update'), async (req: AuthRequ
       } else {
         if (box.status !== 'shipping') throw BadRequest('Faqat shipmentdagi box olib tashlanadi');
         boxUids = boxUids.filter((u: string) => u !== box.uid);
-        history.push({ from: 'shipping', to: 'warehouse', at: new Date(), by: req.user!.username });
+        history.push({ from: 'shipping', to: 'warehouse', at: new Date().toISOString(), by: req.user!.username });
         await client.query(
           `UPDATE boxes SET status = 'warehouse', status_history = $1, updated_at = NOW() WHERE uid = $2`,
           [JSON.stringify(history), box.uid]
@@ -219,7 +221,7 @@ router.post('/', requirePermission('box.update'), async (req: AuthRequest, res: 
       event_type: 'shipment.create',
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'shipment', resource_id: id, action: 'create',
-      metadata: { box_count: box_uids.length, client_id },
+      metadata: { box_count: box_uids.length, client_id: client_id ?? null },
       ip_address: clientIp(req)
     });
 

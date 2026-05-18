@@ -3,6 +3,7 @@ import { pool } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString } from '../../shared/utils/query';
 import { recordScan, overrideScan } from './scanning.service';
 import { publishEvent } from '../sse/sse.router';
 
@@ -93,7 +94,10 @@ router.get('/qr-codes',
   requirePermission('production.qr.create'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { order_id, stage, status, q } = req.query;
+    const order_id = getOptionalQueryString(req.query.order_id);
+    const stage = getOptionalQueryString(req.query.stage);
+    const status = getOptionalQueryString(req.query.status);
+    const q = getOptionalQueryString(req.query.q);
     const params: SqlParams = [];
     const conds: string[] = [];
     if (order_id) { params.push(order_id); conds.push(`pqr.order_id = $${params.length}`); }
@@ -168,11 +172,11 @@ router.post('/scan',
       action: result.action,
       metadata: {
         stage: result.current_stage,
-        next_stage: result.next_stage,
-        worker_id: req.body.worker_id,
+        next_stage: result.next_stage ?? null,
+        worker_id: req.body?.worker_id ?? null,
         is_suspicious: result.is_suspicious,
-        suspicious_reason: result.suspicious_reason,
-        duration_seconds: result.duration_seconds,
+        suspicious_reason: result.suspicious_reason ?? null,
+        duration_seconds: result.duration_seconds ?? null,
       },
       ip_address: clientIp(req),
     });
@@ -185,7 +189,7 @@ router.post('/scan',
       next_stage: result.next_stage,
       is_suspicious: result.is_suspicious,
       worker_id: req.body.worker_id,
-      time: new Date(),
+      time: new Date().toISOString(),
     });
 
     res.json(result);
@@ -316,7 +320,7 @@ router.get('/scans/active',
   requirePermission('production.qr.scan'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { worker_id } = req.query;
+    const worker_id = getOptionalQueryString(req.query.worker_id);
     const params: SqlParams = [];
     let where = `WHERE pss.status = 'started'`;
     if (worker_id) { params.push(worker_id); where += ` AND pss.worker_id = $${params.length}`; }

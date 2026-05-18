@@ -4,6 +4,7 @@ import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../sh
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
 import { syncBoxCreate, syncBoxUpdate, syncBoxDelete } from '../boxapp/boxapp.service';
+import { getOptionalQueryString } from '../../shared/utils/query';
 import type { BoxSyncRecord } from '../boxapp/boxapp.types';
 
 const router = Router();
@@ -26,7 +27,9 @@ router.get('/_stats/by-status', requirePermission('box.read'), async (req: AuthR
 
 router.get('/', requirePermission('box.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { status, zakaz, order_id } = req.query;
+    const status = getOptionalQueryString(req.query.status);
+    const zakaz = getOptionalQueryString(req.query.zakaz);
+    const order_id = getOptionalQueryString(req.query.order_id);
     const params: SqlParams = [];
     const conds: string[] = [];
 
@@ -83,7 +86,7 @@ router.post('/', requirePermission('box.create'), async (req: AuthRequest, res: 
       sizes ? JSON.stringify(sizes) : null,
       items ? JSON.stringify(items) : null,
       req.user!.id, req.user!.full_name,
-      JSON.stringify([{ status: st, at: new Date(), by: req.user!.username }])
+      JSON.stringify([{ status: st, at: new Date().toISOString(), by: req.user!.username }])
     ]);
 
     await auditLog({
@@ -132,7 +135,7 @@ router.put('/:uid', requirePermission('box.update'), async (req: AuthRequest, re
       let history = cur.status_history;
       if (status && status !== cur.status) {
         if (!Array.isArray(history)) history = [];
-        history.push({ status, at: new Date(), by: req.user!.username });
+        history.push({ status, at: new Date().toISOString(), by: req.user!.username });
       }
 
       await client.query(`

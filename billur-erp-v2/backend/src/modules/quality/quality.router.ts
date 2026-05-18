@@ -3,6 +3,7 @@ import { pool, withTransaction } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString, getQueryString } from '../../shared/utils/query';
 
 const router = Router();
 router.use(requireAuth);
@@ -11,7 +12,10 @@ const VALID_DEFECT_SEVERITIES = ['minor', 'major', 'critical'];
 
 router.get('/', requirePermission('quality.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { order_id, order_item_id, stage, since, limit } = req.query;
+    const order_id = getOptionalQueryString(req.query.order_id);
+    const order_item_id = getOptionalQueryString(req.query.order_item_id);
+    const stage = getOptionalQueryString(req.query.stage);
+    const since = getOptionalQueryString(req.query.since);
     const params: SqlParams = [];
     const conds: string[] = [];
 
@@ -21,7 +25,7 @@ router.get('/', requirePermission('quality.read'), async (req: AuthRequest, res:
     if (since)         { params.push(since);         conds.push(`qc.created_at >= $${params.length}`); }
 
     const whereSql = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
-    const lim = Math.min(parseInt(String(limit || '100'), 10) || 100, 500);
+    const lim = Math.min(parseInt(getQueryString(req.query.limit) || '100', 10) || 100, 500);
 
     const { rows } = await pool.query(`
       SELECT qc.id, qc.created_at, qc.stage, ps.name_uz AS stage_name,
@@ -52,7 +56,7 @@ router.get('/', requirePermission('quality.read'), async (req: AuthRequest, res:
 
 router.get('/discrepancies', requirePermission('quality.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { status } = req.query;
+    const status = getOptionalQueryString(req.query.status);
     const params: SqlParams = [];
     const conds: string[] = [];
     if (status) { params.push(status); conds.push(`d.status = $${params.length}`); }
@@ -123,7 +127,7 @@ router.post('/discrepancies/:id/resolve',
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'discrepancy', resource_id: req.params.id,
       action: 'resolve',
-      metadata: { resolution, resolution_notes },
+      metadata: { resolution: resolution ?? null, resolution_notes: resolution_notes ?? null },
       ip_address: clientIp(req)
     });
     res.json({ ok: true });
@@ -132,7 +136,7 @@ router.post('/discrepancies/:id/resolve',
 
 router.get('/defects/summary', requirePermission('quality.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { since } = req.query;
+    const since = getOptionalQueryString(req.query.since);
     const params: SqlParams = [];
     let whereSql = '';
     if (since) { params.push(since); whereSql = `WHERE qc.created_at >= $${params.length}`; }
@@ -292,7 +296,12 @@ router.post('/', requirePermission('quality.create'), async (req: AuthRequest, r
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'quality_check', resource_id: result.qc_id,
       action: 'create',
-      metadata: { stage, checked_qty, passed, defects: defects?.length ?? 0 },
+      metadata: {
+        stage: stage ?? null,
+        checked_qty,
+        passed,
+        defects: defects?.length ?? 0,
+      },
       ip_address: clientIp(req)
     });
 

@@ -5,6 +5,7 @@ import { generateQrToken, validateQrToken } from '../../shared/utils/crypto';
 import { AuthRequest, SqlParams, BadRequest, NotFound, Forbidden } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp, rateLimit } from '../../shared/middleware/security';
+import { getOptionalQueryString } from '../../shared/utils/query';
 import { recordProductionEvent } from '../production/production.events';
 
 const router = Router();
@@ -45,7 +46,10 @@ router.post('/generate/:workerId',
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'worker', resource_id: req.params.workerId,
       action: 'qr.generate',
-      metadata: { issued_at: new Date(), expires_at: expiresAt },
+      metadata: {
+        issued_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString(),
+      },
       ip_address: clientIp(req)
     });
 
@@ -287,10 +291,14 @@ router.post('/scan',
       resource_type: 'qr_scan', resource_id: String(result.scan_id),
       action: 'scan',
       metadata: {
-        worker_id: workerId, stage, order_item_id, qty,
-        scan_type: sType, suspicious: isSuspicious,
-        event_id: result.event?.event_id,
-        discrepancy_id: result.event?.discrepancy_id,
+        worker_id: workerId,
+        stage,
+        order_item_id: order_item_id ?? null,
+        qty,
+        scan_type: sType,
+        suspicious: isSuspicious,
+        event_id: result.event?.event_id ?? null,
+        discrepancy_id: result.event?.discrepancy_id ?? null,
       },
       ip_address: clientIp(req)
     });
@@ -313,7 +321,10 @@ router.post('/scan',
 // ── List scans ─────────────────────────────────────────────────────────────
 router.get('/scans', requirePermission('qr.scan'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { worker_id, stage, suspicious, since } = req.query;
+    const worker_id = getOptionalQueryString(req.query.worker_id);
+    const stage = getOptionalQueryString(req.query.stage);
+    const suspicious = getOptionalQueryString(req.query.suspicious);
+    const since = getOptionalQueryString(req.query.since);
     const params: SqlParams = [];
     const conds: string[] = [];
 
@@ -385,7 +396,7 @@ router.post('/scans/:id/approve',
       event_type: 'qr.scan.approve',
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'qr_scan', resource_id: req.params.id, action: 'approve',
-      metadata: { event_id: result.event?.event_id },
+      metadata: { event_id: result.event?.event_id ?? null },
       ip_address: clientIp(req)
     });
     res.json({

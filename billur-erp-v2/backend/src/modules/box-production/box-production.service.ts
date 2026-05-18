@@ -335,7 +335,7 @@ export async function createBoxForOrder(req: CreateBoxRequest) {
     req.sizes ? JSON.stringify(req.sizes) : null,
     req.items ? JSON.stringify(req.items) : null,
     req.user_id, req.user_name,
-    JSON.stringify([{ status: 'packed', at: new Date(), by: req.user_name }]),
+    JSON.stringify([{ status: 'packed', at: new Date().toISOString(), by: req.user_name }]),
   ]);
 
   syncBoxCreate(rows[0], req.user_id).catch(console.error);

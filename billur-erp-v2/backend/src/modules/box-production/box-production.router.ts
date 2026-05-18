@@ -1,5 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { AuthRequest } from '../../shared/types';
+import { getOptionalQueryString, getQueryString } from '../../shared/utils/query';
 import { requireAuth, requirePermission, requireAnyPermission } from '../../shared/middleware/auth';
 import { clientIp, rateLimit } from '../../shared/middleware/security';
 import { idempotencyGuard } from '../../shared/middleware/idempotency';
@@ -89,11 +90,12 @@ router.post('/boxes',
 
 router.get('/scan-history', requirePermission('box.read'), async (req: AuthRequest, res, next) => {
   try {
-    const { order_id, limit = '50' } = req.query;
+    const order_id = getOptionalQueryString(req.query.order_id);
+    const limit = getQueryString(req.query.limit) || '50';
     const params: (string | number)[] = [];
     let where = '1=1';
     if (order_id) {
-      params.push(order_id as string);
+      params.push(order_id);
       where += ` AND bse.order_id = $${params.length}`;
     }
     params.push(Math.min(Number(limit) || 50, 200));

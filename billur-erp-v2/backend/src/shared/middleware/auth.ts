@@ -1,13 +1,14 @@
 import { Response, NextFunction } from 'express';
 import { pool } from '../database/pool';
 import { AuthRequest, Unauthorized, Forbidden } from '../types';
+import { getOptionalQueryString } from '../utils/query';
 
 const SESSION_TTL_HOURS = 8;
 
 export async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   const token = (req.headers['x-session-token'] as string)
               || req.cookies?.token
-              || (req.query?.token as string | undefined);
+              || getOptionalQueryString(req.query?.token);
 
   if (!token || typeof token !== 'string' || !/^[a-f0-9]{32,128}$/i.test(token)) {
     req.user = undefined;

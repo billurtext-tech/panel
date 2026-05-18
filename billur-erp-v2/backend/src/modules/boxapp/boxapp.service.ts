@@ -5,6 +5,7 @@
 
 import { pool } from '../../shared/database/pool';
 import type { JsonValue } from '../../shared/types';
+import { toJsonValue } from '../../shared/utils/json';
 import type { BoxSyncRecord, RemoteApiResponse, ShipmentSyncRecord } from './boxapp.types';
 
 const BOXAPP_URL = process.env.BOXAPP_API_URL || 'https://app.andbillur.com';
@@ -156,7 +157,7 @@ export async function syncBoxCreate(box: BoxSyncRecord, userId?: string) {
     entity_type: 'box',
     entity_id: box.uid,
     operation: 'create',
-    payload: {
+    payload: toJsonValue({
       uid: box.uid,
       box_number: box.box_num,
       order_id: box.order_id,
@@ -170,7 +171,7 @@ export async function syncBoxCreate(box: BoxSyncRecord, userId?: string) {
       items: box.items,
       packed_by: box.created_by_name,
       packed_at: box.created_at,
-    },
+    }),
     created_by: userId,
   });
 }
@@ -180,14 +181,14 @@ export async function syncShipmentCreate(shipment: ShipmentSyncRecord, userId?: 
     entity_type: 'shipment',
     entity_id: shipment.id,
     operation: 'create',
-    payload: {
+    payload: toJsonValue({
       id: shipment.id,
       client_id: shipment.client_id,
       truck_info: shipment.truck_info,
       box_uids: shipment.box_uids,
       status: shipment.status,
       created_at: shipment.created_at,
-    },
+    }),
     created_by: userId,
   });
 }
@@ -197,7 +198,7 @@ export async function syncShipmentUpdate(shipment: ShipmentSyncRecord, userId?: 
     entity_type: 'shipment',
     entity_id: shipment.id,
     operation: 'update',
-    payload: shipment,
+    payload: toJsonValue(shipment),
     created_by: userId,
   });
 }
@@ -207,7 +208,7 @@ export async function syncBoxUpdate(box: BoxSyncRecord, userId?: string) {
     entity_type: 'box',
     entity_id: box.uid,
     operation: 'update',
-    payload: {
+    payload: toJsonValue({
       uid: box.uid,
       box_number: box.box_num,
       order_id: box.order_id,
@@ -219,7 +220,7 @@ export async function syncBoxUpdate(box: BoxSyncRecord, userId?: string) {
       status: box.status,
       sizes: box.sizes,
       items: box.items,
-    },
+    }),
     created_by: userId,
   });
 }
@@ -244,7 +245,7 @@ export async function syncOrderToBoxApp(order: {
     entity_type: 'order',
     entity_id: order.id,
     operation: 'create',
-    payload: order,
+    payload: toJsonValue(order),
     created_by: userId,
   });
 }

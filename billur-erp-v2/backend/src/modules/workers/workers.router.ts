@@ -3,6 +3,7 @@ import { pool } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString, getQueryString } from '../../shared/utils/query';
 
 const router = Router();
 router.use(requireAuth);
@@ -14,7 +15,9 @@ const VALID_POSITIONS = [
 
 router.get('/', requirePermission('workers.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { stage, position, active } = req.query;
+    const stage = getOptionalQueryString(req.query.stage);
+    const position = getOptionalQueryString(req.query.position);
+    const active = getOptionalQueryString(req.query.active);
     const params: SqlParams = [];
     const conds: string[] = [`w.deleted_at IS NULL`];
 
@@ -165,7 +168,7 @@ router.delete('/:id', requirePermission('workers.delete'), async (req: AuthReque
 // Worker's recent scans — for the detail panel
 router.get('/:id/scans', requirePermission('workers.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const limit = Math.min(parseInt(String(req.query.limit || '50'), 10) || 50, 200);
+    const limit = Math.min(parseInt(getQueryString(req.query.limit) || '50', 10) || 50, 200);
     const { rows } = await pool.query(`
       SELECT s.id, s.stage, s.qty, s.scan_type, s.is_suspicious,
              s.suspicious_reason, s.scanned_at, s.order_item_id,

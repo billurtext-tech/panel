@@ -13,7 +13,7 @@ export interface BoxSyncRecord {
   sizes?: JsonValue;
   items?: JsonValue;
   created_by_name?: string | null;
-  created_at?: string | Date | null;
+  created_at?: string | null;
 }
 
 export interface ShipmentSyncRecord {
@@ -22,8 +22,8 @@ export interface ShipmentSyncRecord {
   truck_info?: string | null;
   box_uids?: string[] | null;
   status?: string | null;
-  created_at?: string | Date | null;
-  [key: string]: JsonValue | string | string[] | Date | null | undefined;
+  created_at?: string | null;
+  [key: string]: JsonValue | string | string[] | null | undefined;
 }
 
 export interface RemoteApiResponse {

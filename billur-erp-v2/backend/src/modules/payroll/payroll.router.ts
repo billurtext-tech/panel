@@ -3,6 +3,7 @@ import { pool } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound, Forbidden } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString } from '../../shared/utils/query';
 import { calculatePayroll, calculateAllPayroll } from './payroll.service';
 
 const router = Router();
@@ -127,7 +128,10 @@ router.get('/entries', async (req: AuthRequest, res: Response, next: NextFunctio
       throw Forbidden();
     }
 
-    const { worker_id, status, period_start, period_end } = req.query;
+    const worker_id = getOptionalQueryString(req.query.worker_id);
+    const status = getOptionalQueryString(req.query.status);
+    const period_start = getOptionalQueryString(req.query.period_start);
+    const period_end = getOptionalQueryString(req.query.period_end);
     const params: SqlParams = [];
     const conds: string[] = [];
 

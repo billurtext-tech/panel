@@ -3,6 +3,7 @@ import { pool, withTransaction } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString, getQueryString } from '../../shared/utils/query';
 
 const router = Router();
 router.use(requireAuth);
@@ -11,7 +12,11 @@ const VALID_MOVEMENT_TYPES = ['receipt', 'issue', 'transfer', 'adjustment', 'ret
 
 router.get('/movements', requirePermission('inventory.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { warehouse_id, model_id, raw_material_id, type, since, limit } = req.query;
+    const warehouse_id = getOptionalQueryString(req.query.warehouse_id);
+    const model_id = getOptionalQueryString(req.query.model_id);
+    const raw_material_id = getOptionalQueryString(req.query.raw_material_id);
+    const type = getOptionalQueryString(req.query.type);
+    const since = getOptionalQueryString(req.query.since);
     const params: SqlParams = [];
     const conds: string[] = [];
 
@@ -22,7 +27,7 @@ router.get('/movements', requirePermission('inventory.read'), async (req: AuthRe
     if (since)           { params.push(since);           conds.push(`im.occurred_at >= $${params.length}`); }
 
     const whereSql = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
-    const lim = Math.min(parseInt(String(limit || '100'), 10) || 100, 500);
+    const lim = Math.min(parseInt(getQueryString(req.query.limit) || '100', 10) || 100, 500);
 
     const { rows } = await pool.query(`
       SELECT im.id, im.occurred_at, im.recorded_at, im.movement_type, im.qty,
@@ -138,7 +143,12 @@ router.post('/movements', requirePermission('inventory.move'), async (req: AuthR
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'inventory_movement', resource_id: result.id,
       action: movement_type,
-      metadata: { warehouse_id, qty, model_id, raw_material_id },
+      metadata: {
+        warehouse_id: warehouse_id ?? null,
+        qty,
+        model_id: model_id ?? null,
+        raw_material_id: raw_material_id ?? null,
+      },
       ip_address: clientIp(req)
     });
 
@@ -148,7 +158,8 @@ router.post('/movements', requirePermission('inventory.move'), async (req: AuthR
 
 router.get('/balance/goods', requirePermission('inventory.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { warehouse_id, model_id } = req.query;
+    const warehouse_id = getOptionalQueryString(req.query.warehouse_id);
+    const model_id = getOptionalQueryString(req.query.model_id);
     const params: SqlParams = [];
     const conds: string[] = [`im.model_id IS NOT NULL`];
 

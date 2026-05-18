@@ -3,6 +3,7 @@ import { pool } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString } from '../../shared/utils/query';
 
 const router = Router();
 router.use(requireAuth);
@@ -11,7 +12,9 @@ const VALID_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'];
 
 router.get('/', requirePermission('print.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { status, client_id, order_id } = req.query;
+    const status = getOptionalQueryString(req.query.status);
+    const client_id = getOptionalQueryString(req.query.client_id);
+    const order_id = getOptionalQueryString(req.query.order_id);
     const params: SqlParams = [];
     const conds: string[] = [];
     if (status)    { params.push(status);    conds.push(`pj.status = $${params.length}`); }

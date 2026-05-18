@@ -3,6 +3,7 @@ import { pool, withTransaction } from '../../shared/database/pool';
 import { AuthRequest, SqlParams, BadRequest, NotFound, Conflict } from '../../shared/types';
 import { requireAuth, requirePermission } from '../../shared/middleware/auth';
 import { auditLog, clientIp } from '../../shared/middleware/security';
+import { getOptionalQueryString } from '../../shared/utils/query';
 
 const router = Router();
 router.use(requireAuth);
@@ -11,7 +12,9 @@ const VALID_STATUSES = ['in_warehouse', 'reserved', 'sold', 'discarded'];
 
 router.get('/', requirePermission('surplus.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { status, model_id, client_id } = req.query;
+    const status = getOptionalQueryString(req.query.status);
+    const model_id = getOptionalQueryString(req.query.model_id);
+    const client_id = getOptionalQueryString(req.query.client_id);
     const params: SqlParams = [];
     const conds: string[] = [];
 
@@ -197,7 +200,11 @@ router.post('/:id/sell', requirePermission('surplus.sell'), async (req: AuthRequ
       event_type: 'surplus.sell',
       user_id: req.user!.id, username: req.user!.username,
       resource_type: 'surplus_item', resource_id: req.params.id, action: 'sell',
-      metadata: { qty, sale_price_uzs, client_id },
+      metadata: {
+        qty,
+        sale_price_uzs: sale_price_uzs ?? null,
+        client_id: client_id ?? null,
+      },
       ip_address: clientIp(req)
     });
     res.json(result);
