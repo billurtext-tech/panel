@@ -222,24 +222,27 @@ CREATE INDEX IF NOT EXISTS idx_bsj_entity   ON boxapp_sync_jobs(entity_type, ent
 CREATE INDEX IF NOT EXISTS idx_bsj_retry    ON boxapp_sync_jobs(next_retry_at)
   WHERE sync_status IN ('pending','failed');
 
--- ── New permissions ──────────────────────────────────────────────────────
-INSERT INTO permissions (id, description) VALUES
-  ('production.qr.create',    'Production QR code yaratish'),
-  ('production.qr.scan',      'Stage scan (START/FINISH)'),
-  ('production.qr.override',  'Adminga lock buzish huquqi'),
-  ('production.trace.view',   'QR/Box history ko''rish'),
-  ('payroll.view_own',        'Worker o''z payrolli'),
-  ('payroll.view_all',        'HR/Admin'),
-  ('payroll.calculate',       'Period hisoblash'),
-  ('payroll.approve',         'Admin/Owner'),
-  ('piece_rates.read',        ''),
-  ('piece_rates.update',      ''),
-  ('workers.documents.view_own',  ''),
-  ('workers.documents.view_all',  'HR'),
-  ('workers.documents.upload',    ''),
-  ('boxapp.view',             ''),
-  ('boxapp.sync',             ''),
-  ('boxapp.retry',            '')
+INSERT INTO permissions (id, resource, action, description) VALUES
+  ('production.qr.create', 'production.qr', 'create', 'Production QR code yaratish'),
+  ('production.qr.scan', 'production.qr', 'scan', 'Stage scan (START/FINISH)'),
+  ('production.qr.override', 'production.qr', 'override', 'Adminga lock buzish huquqi'),
+  ('production.trace.view', 'production.trace', 'view', 'QR/Box history ko''rish'),
+
+  ('payroll.view_own', 'payroll', 'view_own', 'Worker o''z payrolli'),
+  ('payroll.view_all', 'payroll', 'view_all', 'HR/Admin'),
+  ('payroll.calculate', 'payroll', 'calculate', 'Period hisoblash'),
+  ('payroll.approve', 'payroll', 'approve', 'Admin/Owner'),
+
+  ('piece_rates.read', 'piece_rates', 'read', ''),
+  ('piece_rates.update', 'piece_rates', 'update', ''),
+
+  ('workers.documents.view_own', 'workers.documents', 'view_own', ''),
+  ('workers.documents.view_all', 'workers.documents', 'view_all', 'HR'),
+  ('workers.documents.upload', 'workers.documents', 'upload', ''),
+
+  ('boxapp.view', 'boxapp', 'view', ''),
+  ('boxapp.sync', 'boxapp', 'sync', ''),
+  ('boxapp.retry', 'boxapp', 'retry', '')
 ON CONFLICT (id) DO NOTHING;
 
 -- Owner gets all new permissions
