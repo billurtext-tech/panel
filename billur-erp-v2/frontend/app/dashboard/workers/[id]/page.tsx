@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -149,7 +149,7 @@ export default function Page({
               <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
                 <AvatarImage src={worker.photo} />
                 <AvatarFallback className="text-3xl">
-                  {worker.name.split(" ").map((n) => n[0]).join("")}
+                  {worker.name.split(" ").map((n: string) => n[0]).join("")}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-2">
@@ -490,63 +490,62 @@ export default function Page({
               const uploadDate = doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('uz-UZ') : ''
               const expiryDate = doc.expiry_date ? new Date(doc.expiry_date).toLocaleDateString('uz-UZ') : ''
               return (
-              <Card key={doc.id || index}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-muted">
-                        <FileText className="h-6 w-6" />
+                <Card key={doc.id || index}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-muted">
+                          <FileText className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{docType}</p>
+                          <Badge
+                            variant="outline"
+                            className={`mt-1 gap-1 ${
+                              docStatus === "Verified" ? "border-green-500 text-green-500" :
+                              docStatus === "Expiring Soon" ? "border-yellow-500 text-yellow-500" :
+                              "border-orange-500 text-orange-500"
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${documentStatusColors[docStatus]}`} />
+                            {docStatus}
+                          </Badge>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{docType}</p>
-                        <Badge
-                          variant="outline"
-                          className={`mt-1 gap-1 ${
-                            docStatus === "Verified" ? "border-green-500 text-green-500" :
-                            docStatus === "Expiring Soon" ? "border-yellow-500 text-yellow-500" :
-                            "border-orange-500 text-orange-500"
-                          }`}
-                        >
-                          <span className={`w-2 h-2 rounded-full ${documentStatusColors[docStatus]}`} />
-                          {docStatus}
-                        </Badge>
-                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="mt-4 space-y-2 text-sm">
-                    {uploadDate && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Uploaded</span>
-                        <span>{uploadDate}</span>
-                      </div>
-                    )}
-                    {expiryDate && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Expires</span>
-                        <span className={docStatus === "Expiring Soon" ? "text-yellow-500" : ""}>
-                          {expiryDate}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      <Eye className="mr-1 h-3 w-3" /> View
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
-                      <Download className="mr-1 h-3 w-3" /> Download
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="mt-4 space-y-2 text-sm">
+                      {uploadDate && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Uploaded</span>
+                          <span>{uploadDate}</span>
+                        </div>
+                      )}
+                      {expiryDate && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Expires</span>
+                          <span className={docStatus === "Expiring Soon" ? "text-yellow-500" : ""}>
+                            {expiryDate}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Eye className="mr-1 h-3 w-3" /> View
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Download className="mr-1 h-3 w-3" /> Download
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               )
             })}
 
             {/* Upload New Document */}
-            <Card className="border-dashed">
             <Card className="border-dashed">
               <CardContent className="pt-6">
                 <DocumentUploader workerId={worker._real_id} />
@@ -683,3 +682,4 @@ function DocumentUploader({ workerId }: { workerId: string }) {
     </div>
   )
 }
+```</Card>
