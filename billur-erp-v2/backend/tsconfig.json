@@ -6,6 +6,7 @@
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
+
     "strict": true,
     "strictNullChecks": true,
     "noImplicitAny": true,
@@ -16,7 +17,8 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "declaration": false,
-    "types": ["node"]
+    "types": ["node"],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
