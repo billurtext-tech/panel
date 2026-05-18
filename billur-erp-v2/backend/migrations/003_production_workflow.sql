@@ -223,23 +223,23 @@ CREATE INDEX IF NOT EXISTS idx_bsj_retry    ON boxapp_sync_jobs(next_retry_at)
   WHERE sync_status IN ('pending','failed');
 
 -- ── New permissions ──────────────────────────────────────────────────────
-INSERT INTO permissions (id, name_uz, description) VALUES
-  ('production.qr.create',    'QR yaratish',                   'Production QR code yaratish'),
-  ('production.qr.scan',      'QR scan qilish',                'Stage scan (START/FINISH)'),
-  ('production.qr.override',  'Manual override',               'Adminga lock buzish huquqi'),
-  ('production.trace.view',   'Traceability ko''rish',         'QR/Box history ko''rish'),
-  ('payroll.view_own',        'O''z oyligini ko''rish',        'Worker o''z payrolli'),
-  ('payroll.view_all',        'Hamma payrollni ko''rish',      'HR/Admin'),
-  ('payroll.calculate',       'Payroll hisoblash',             'Period hisoblash'),
-  ('payroll.approve',         'Payroll tasdiqlash',            'Admin/Owner'),
-  ('piece_rates.read',        'Piece rates ko''rish',          ''),
-  ('piece_rates.update',      'Piece rates o''zgartirish',     ''),
-  ('workers.documents.view_own',  'O''z hujjatlarini ko''rish', ''),
-  ('workers.documents.view_all',  'Hamma hujjatlarni ko''rish', 'HR'),
-  ('workers.documents.upload',    'Hujjat yuklash',             ''),
-  ('boxapp.view',             'BoxApp ko''rish',               ''),
-  ('boxapp.sync',             'BoxApp sync qilish',            ''),
-  ('boxapp.retry',            'BoxApp failed retry',           '')
+INSERT INTO permissions (id, description) VALUES
+  ('production.qr.create',    'Production QR code yaratish'),
+  ('production.qr.scan',      'Stage scan (START/FINISH)'),
+  ('production.qr.override',  'Adminga lock buzish huquqi'),
+  ('production.trace.view',   'QR/Box history ko''rish'),
+  ('payroll.view_own',        'Worker o''z payrolli'),
+  ('payroll.view_all',        'HR/Admin'),
+  ('payroll.calculate',       'Period hisoblash'),
+  ('payroll.approve',         'Admin/Owner'),
+  ('piece_rates.read',        ''),
+  ('piece_rates.update',      ''),
+  ('workers.documents.view_own',  ''),
+  ('workers.documents.view_all',  'HR'),
+  ('workers.documents.upload',    ''),
+  ('boxapp.view',             ''),
+  ('boxapp.sync',             ''),
+  ('boxapp.retry',            '')
 ON CONFLICT (id) DO NOTHING;
 
 -- Owner gets all new permissions
