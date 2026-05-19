@@ -37,7 +37,15 @@ export function UserDialog({
   onClose,
   onSaved,
 }: {
-  user?: { id: string; username: string; full_name: string; role_id: string; is_active?: boolean; worker_code?: string };
+  user?: {
+    id: string;
+    username: string;
+    full_name: string;
+    role_id: string;
+    is_active?: boolean;
+    worker_id?: string | null;
+    worker_code?: string;
+  };
   roles: { id: string; name_uz?: string }[];
   onClose: () => void;
   onSaved: () => void;
@@ -51,8 +59,8 @@ export function UserDialog({
     role_id: user?.role_id || roles[0]?.id || "admin",
     password: "",
     is_active: user?.is_active ?? true,
-    link_mode: "new" as "new" | "existing",
-    worker_id: "",
+    link_mode: (user?.worker_id ? "existing" : "new") as "new" | "existing",
+    worker_id: user?.worker_id || "",
     employee_code: user?.worker_code || user?.username || "",
     position:
       user?.role_id === "boxing"
@@ -84,11 +92,23 @@ export function UserDialog({
         : {};
 
       if (isEdit) {
+        const editWorkerPayload = workerRequired
+          ? {
+              worker_id:
+                form.link_mode === "existing"
+                  ? form.worker_id || user?.worker_id || null
+                  : null,
+              employee_code:
+                form.link_mode === "new" ? form.employee_code.trim() : undefined,
+              position: form.position,
+              default_stage: form.default_stage || null,
+            }
+          : {};
         await api.put(`/api/users/${user!.id}`, {
           full_name: form.full_name,
           role_id: form.role_id,
           is_active: form.is_active,
-          ...workerPayload,
+          ...editWorkerPayload,
         });
         if (form.password) {
           await api.put(`/api/users/${user!.id}/password`, { password: form.password });
@@ -101,8 +121,11 @@ export function UserDialog({
       if (workerRequired && form.link_mode === "new" && !form.employee_code.trim()) {
         throw new Error("Ishchi uchun tabel raqami kiriting");
       }
-      if (workerRequired && form.link_mode === "existing" && !form.worker_id) {
+      if (workerRequired && form.link_mode === "existing" && !form.worker_id && !(isEdit && user?.worker_id)) {
         throw new Error("Mavjud ishchini tanlang");
+      }
+      if (isEdit && workerRequired && form.link_mode === "new" && !form.employee_code.trim()) {
+        throw new Error("Yangi tabel raqami kiriting yoki mavjud ishchini tanlang");
       }
       return api.post("/api/users", {
         username: form.username,
@@ -180,6 +203,11 @@ export function UserDialog({
           {workerRequired && (
             <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
               <p className="text-sm font-medium">Ishchi biriktirish *</p>
+              {isEdit && user?.worker_code && (
+                <p className="text-xs text-green-600">
+                  Hozir biriktirilgan: <span className="font-mono">{user.worker_code}</span>
+                </p>
+              )}
               <Select
                 value={form.link_mode}
                 onValueChange={(v: "new" | "existing") => setForm({ ...form, link_mode: v })}

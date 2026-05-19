@@ -72,7 +72,10 @@ export async function linkWorkerToUser(opts: {
     if (!stg.rows.length) throw BadRequest("Noto'g'ri bosqich");
   }
 
-  const dup = await pool.query(`SELECT 1 FROM workers WHERE employee_code = $1`, [code]);
+  const dup = await pool.query(
+    `SELECT 1 FROM workers WHERE UPPER(employee_code) = UPPER($1) AND deleted_at IS NULL AND user_id IS DISTINCT FROM $2`,
+    [code, userId]
+  );
   if (dup.rows.length) throw Conflict('Bu tabel raqami band');
 
   const ins = await pool.query(`

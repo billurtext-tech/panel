@@ -126,7 +126,6 @@ export function CreateOrderDialog() {
               <Select value={form.order_type} onValueChange={(v) => setForm({ ...form, order_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="speka">Speka</SelectItem>
                   <SelectItem value="set">SET</SelectItem>
                   <SelectItem value="standard">Standard</SelectItem>
                 </SelectContent>

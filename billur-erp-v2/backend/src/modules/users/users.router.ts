@@ -71,12 +71,29 @@ router.post('/', requirePermission('users.create'), async (req: AuthRequest, res
   } catch (e) { next(e); }
 });
 
+router.get('/_meta/roles', requirePermission('users.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { rows } = await pool.query(`SELECT * FROM roles ORDER BY id`);
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+router.get('/_meta/permissions', requirePermission('users.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { rows } = await pool.query(`SELECT * FROM permissions ORDER BY resource, action`);
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
 router.get('/:id', requirePermission('users.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(`
-      SELECT id, username, full_name, role_id, phone, email,
-             is_active, last_login_at, created_at
-      FROM users WHERE id = $1 AND deleted_at IS NULL
+      SELECT u.id, u.username, u.full_name, u.role_id, u.phone, u.email,
+             u.is_active, u.last_login_at, u.created_at,
+             w.id AS worker_id, w.employee_code AS worker_code
+      FROM users u
+      LEFT JOIN workers w ON w.user_id = u.id AND w.deleted_at IS NULL
+      WHERE u.id = $1 AND u.deleted_at IS NULL
     `, [req.params.id]);
     if (!rows.length) throw NotFound();
     res.json(rows[0]);
@@ -164,20 +181,6 @@ router.delete('/:id', requirePermission('users.delete'), async (req: AuthRequest
       ip_address: clientIp(req)
     });
     res.json({ ok: true });
-  } catch (e) { next(e); }
-});
-
-router.get('/_meta/roles', requirePermission('users.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const { rows } = await pool.query(`SELECT * FROM roles ORDER BY id`);
-    res.json(rows);
-  } catch (e) { next(e); }
-});
-
-router.get('/_meta/permissions', requirePermission('users.read'), async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const { rows } = await pool.query(`SELECT * FROM permissions ORDER BY resource, action`);
-    res.json(rows);
   } catch (e) { next(e); }
 });
 

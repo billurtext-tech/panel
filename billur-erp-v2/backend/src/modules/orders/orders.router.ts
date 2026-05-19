@@ -337,31 +337,53 @@ router.post('/speka/create-order', requirePermission('orders.create'),
       const orderId = ord.rows[0].id;
 
       let itemsCreated = 0;
+      let totalPieces = 0;
       for (const item of items) {
-        const model = await client.query(`SELECT id FROM models WHERE code = $1`, [item.model_code]);
-        const color = item.color_code
-          ? await client.query(`SELECT id FROM colors WHERE code = $1 OR name_uz = $1`, [item.color_code])
+        const modelCode = String(item.model_code || '').trim();
+        const model = await client.query(
+          `SELECT id FROM models WHERE UPPER(code) = UPPER($1) AND deleted_at IS NULL`,
+          [modelCode]
+        );
+        const colorCode = item.color_code ? String(item.color_code).trim() : null;
+        const color = colorCode
+          ? await client.query(
+              `SELECT id FROM colors WHERE UPPER(code) = UPPER($1) OR UPPER(name_uz) = UPPER($1)`,
+              [colorCode]
+            )
           : { rows: [{ id: null }] };
 
         if (!model.rows.length) {
-          throw BadRequest(`Model "${item.model_code}" topilmadi`);
+          throw BadRequest(`Model "${modelCode}" topilmadi — avval modellar ro'yxatiga qo'shing`);
+        }
+        if (colorCode && !color.rows.length) {
+          throw BadRequest(`Rang "${colorCode}" topilmadi — avval rang qo'shing`);
         }
 
+        let linePieces = 0;
         for (const [sizeCode, qty] of Object.entries<number>(item.sizes || {})) {
           if (!qty || qty <= 0) continue;
-          const size = await client.query(`SELECT id FROM sizes WHERE code = $1`, [sizeCode]);
+          const size = await client.query(
+            `SELECT id FROM sizes WHERE UPPER(code) = UPPER($1)`,
+            [String(sizeCode).trim()]
+          );
           if (!size.rows.length) {
-            throw BadRequest(`Size "${sizeCode}" topilmadi`);
+            throw BadRequest(`O'lcham "${sizeCode}" topilmadi`);
           }
           await client.query(`
             INSERT INTO order_items (order_id, model_id, color_id, size_id, ordered_qty)
             VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (order_id, model_id, color_id, size_id)
+            DO UPDATE SET ordered_qty = order_items.ordered_qty + EXCLUDED.ordered_qty
           `, [orderId, model.rows[0].id, color.rows[0]?.id || null, size.rows[0].id, qty]);
           itemsCreated++;
+          linePieces += qty;
         }
+        totalPieces += linePieces;
       }
 
-      return res.json({ order: ord.rows[0], items_created: itemsCreated });
+      await client.query(`UPDATE orders SET total_pieces = $1 WHERE id = $2`, [totalPieces, orderId]);
+
+      return res.json({ order: ord.rows[0], items_created: itemsCreated, total_pieces: totalPieces });
     });
   } catch (e) { next(e); }
 });

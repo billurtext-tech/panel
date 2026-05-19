@@ -54,6 +54,7 @@ import {
 } from "lucide-react"
 import { useOrders } from "@/lib/api/hooks"
 import { CreateOrderDialog } from "@/components/orders/create-order-dialog"
+import { CreateSpekaOrderDialog } from "@/components/orders/create-speka-order-dialog"
 import { Label } from "@/components/ui/label"
 
 const statusColors: Record<string, string> = {
@@ -212,7 +213,10 @@ export default function OrdersPage() {
             Manage and track all production orders
           </p>
         </div>
-        <CreateOrderDialog />
+        <div className="flex flex-wrap gap-2">
+          <CreateSpekaOrderDialog />
+          <CreateOrderDialog />
+        </div>
       </div>
 
       {/* Stats Cards */}

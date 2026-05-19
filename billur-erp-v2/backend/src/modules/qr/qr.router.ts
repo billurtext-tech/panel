@@ -78,13 +78,13 @@ router.get('/worker/:workerId/active',
   async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const r = await pool.query(`
-      SELECT t.token, t.expires_at, t.created_at,
+      SELECT t.token, t.expires_at, t.issued_at,
              w.full_name, w.employee_code
       FROM worker_qr_tokens t
       JOIN workers w ON w.id = t.worker_id
       WHERE t.worker_id = $1 AND t.is_active = true
         AND (t.expires_at IS NULL OR t.expires_at > NOW())
-      ORDER BY t.created_at DESC
+      ORDER BY t.issued_at DESC
       LIMIT 1
     `, [req.params.workerId]);
     if (!r.rows.length) throw NotFound('Aktiv QR token yo\'q. Avval generate qiling.');
@@ -101,7 +101,7 @@ router.get('/worker/:workerId/active',
       worker_name: r.rows[0].full_name,
       employee_code: r.rows[0].employee_code,
       expires_at: r.rows[0].expires_at,
-      created_at: r.rows[0].created_at,
+      issued_at: r.rows[0].issued_at,
       qr_png_data_url: dataUrl
     });
   } catch (e) { next(e); }
@@ -116,7 +116,7 @@ router.get('/worker/:workerId/png',
       SELECT token FROM worker_qr_tokens
       WHERE worker_id = $1 AND is_active = true
         AND (expires_at IS NULL OR expires_at > NOW())
-      ORDER BY created_at DESC LIMIT 1
+      ORDER BY issued_at DESC LIMIT 1
     `, [req.params.workerId]);
     if (!r.rows.length) throw NotFound('Aktiv QR token yo\'q');
 

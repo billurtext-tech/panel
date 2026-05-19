@@ -56,7 +56,7 @@ router.post('/qr-codes/bulk',
     if (!order_id) throw BadRequest('order_id kerak');
 
     const items = await pool.query(`
-      SELECT id, model_id, color_id, size_id, quantity
+      SELECT id, model_id, color_id, size_id, ordered_qty
       FROM order_items WHERE order_id = $1
     `, [order_id]);
 
@@ -74,7 +74,7 @@ router.post('/qr-codes/bulk',
         ON CONFLICT (qr_code) DO NOTHING
         RETURNING *
       `, [code, order_id, item.id, item.model_id, item.color_id, item.size_id,
-          item.quantity, req.user!.id]);
+          item.ordered_qty, req.user!.id]);
       if (r.rows[0]) created.push(r.rows[0]);
     }
 

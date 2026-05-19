@@ -227,8 +227,17 @@ function BulkDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
 
   const mut = useMutation({
     mutationFn: () => api.post('/api/scanning/qr-codes/bulk', { order_id: orderId }),
-    onSuccess: (res: any) => { toast.success(`${res.created} ta QR yaratildi`); onSaved(); onClose() },
-    onError: (e: any) => toast.error(e.message),
+    onSuccess: (res: { created?: number }) => {
+      const n = res?.created ?? 0;
+      if (n === 0) {
+        toast.warning("Zakazda order_item yo'q — avval Speka qatorlarini qo'shing");
+      } else {
+        toast.success(`${n} ta QR yaratildi`);
+      }
+      onSaved();
+      onClose();
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Xato"),
   })
 
   return (
